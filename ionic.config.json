@@ -1,0 +1,7 @@
+{
+  "name": "aidflow",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "custom"
+}
