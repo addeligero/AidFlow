@@ -3,8 +3,12 @@ import { useTheme } from 'vuetify'
 import { watch, ref, onMounted } from 'vue'
 
 // Props
+
 const { toggleDrawer } = defineProps({
-  toggleDrawer: Function,
+  toggleDrawer: {
+    type: Function,
+    default: () => {},
+  },
 })
 
 // Theme toggle

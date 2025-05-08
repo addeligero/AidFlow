@@ -26,8 +26,13 @@ const login = async () => {
     alert('Login successful!')
     router.push('/dashboard')
   } catch (error) {
-    console.error('Login failed:', error)
-    alert(error.response?.data?.message || 'Invalid login credentials.')
+    if (axios.isAxiosError(error)) {
+      // Access Axios error properties safely
+      alert(error.response?.data?.message || 'Invalid login credentials.')
+    } else {
+      // Handle non-Axios errors
+      alert('An unexpected error occurred.')
+    }
   } finally {
     isSubmitting.value = false
   }
