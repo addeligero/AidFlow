@@ -56,10 +56,9 @@ app.use(vuetify)
 
 // Watch for changes to the theme and update localStorage
 watch(
-  () => vuetify.theme.dark,
+  () => vuetify.theme.global.name.value,
   (newTheme) => {
-    const theme = newTheme ? 'dark' : 'light'
-    localStorage.setItem('theme', theme)
+    localStorage.setItem('theme', newTheme)
   },
 )
 

@@ -27,10 +27,8 @@ const login = async () => {
     router.push('/dashboard')
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      // Access Axios error properties safely
       alert(error.response?.data?.message || 'Invalid login credentials.')
     } else {
-      // Handle non-Axios errors
       alert('An unexpected error occurred.')
     }
   } finally {

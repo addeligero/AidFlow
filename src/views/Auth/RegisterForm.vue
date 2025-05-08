@@ -34,7 +34,13 @@ const register = async () => {
     router.push('/home')
   } catch (error) {
     console.error('Registration failed:', error)
-    alert(error.response?.data?.message || 'Something went wrong.')
+    if (axios.isAxiosError(error)) {
+      alert(error.response?.data?.message || 'Something went wrong.')
+    } else if (error instanceof Error) {
+      alert(error.message)
+    } else {
+      alert('Something went wrong.')
+    }
   } finally {
     isSubmitting.value = false
   }
