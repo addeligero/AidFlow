@@ -6,7 +6,8 @@ import { useTheme } from 'vuetify' // Import useTheme
 
 const router = useRouter()
 
-const name = ref('')
+const first_name = ref('')
+const last_name = ref('')
 const email = ref('')
 const password = ref('')
 const password_confirmation = ref('')
@@ -15,6 +16,16 @@ const isSubmitting = ref(false)
 const theme = useTheme() // Get current theme
 
 const register = async () => {
+  if (
+    !first_name.value ||
+    !last_name.value ||
+    !email.value ||
+    !password.value ||
+    !password_confirmation.value
+  ) {
+    alert('Please fill in all fields.')
+    return
+  }
   isSubmitting.value = true
 
   try {
@@ -64,8 +75,15 @@ const register = async () => {
       </h3>
       <v-form @submit.prevent="register" class="pa-4">
         <v-text-field
-          v-model="name"
-          label="Name"
+          v-model="first_name"
+          label="First name"
+          required
+          :outlined="true"
+          :color="theme.global.name.value === 'light' ? 'primary' : 'secondary'"
+        ></v-text-field>
+        <v-text-field
+          v-model="last_name"
+          label="Last name"
           required
           :outlined="true"
           :color="theme.global.name.value === 'light' ? 'primary' : 'secondary'"
