@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { useTheme } from 'vuetify' // Import useTheme
+import supabase from '@/lib/Supabase'
 
 const router = useRouter()
 
@@ -26,21 +27,37 @@ const register = async () => {
     alert('Please fill in all fields.')
     return
   }
+  if (password.value !== password_confirmation.value) {
+    alert('Passwords do not match.')
+    return
+  }
   isSubmitting.value = true
 
   try {
-    const response = await axios.post('http://127.0.0.1:8000/api/register', {
-      name: name.value,
+    const { data, error } = await supabase.auth.signUp({
       email: email.value,
       password: password.value,
-      password_confirmation: password_confirmation.value,
+      options: {
+        data: {
+          first_name: first_name.value,
+          last_name: last_name.value,
+        },
+      },
     })
 
-    if (!response.data.access_token) {
-      throw new Error('Registration failed')
+    if (error) {
+      throw new Error(error.message)
+    }
+    if (!data.user) {
+      alert('Check your email to confirm your account before proceeding.')
+      return
     }
 
-    localStorage.setItem('token', response.data.access_token)
+    if (error) {
+      throw new Error('registration failed')
+    }
+
+    localStorage.setItem('token', data.session?.access_token || '')
     alert('Registration successful!')
     router.push('/home')
   } catch (error) {
