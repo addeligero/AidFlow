@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import supabase from '@/lib/Supabase'
 
 const router = useRouter()
 
@@ -10,24 +10,41 @@ const password = ref('')
 const isSubmitting = ref(false)
 
 const login = async () => {
+  if (!email.value || !password.value) {
+    alert('Please fill in all fields.')
+    return
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+    alert('Please enter a valid email address.')
+    return
+  }
+
   isSubmitting.value = true
 
   try {
-    const response = await axios.post('http://127.0.0.1:8000/api/login', {
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: email.value,
       password: password.value,
     })
 
-    if (!response.data.access_token) {
-      throw new Error('Invalid credentials')
+    if (error) {
+      throw new Error(error.message)
     }
 
-    localStorage.setItem('token', response.data.access_token)
-    alert('Login successful!')
-    router.push('/dashboard')
+    if (data.session) {
+      const { session, user } = data
+
+      // Storing tokens in sessionStorage (more secure than localStorage)
+      sessionStorage.setItem('access_token', session.access_token)
+      sessionStorage.setItem('refresh_token', session.refresh_token)
+      sessionStorage.setItem('auth_id', user.id)
+
+      alert('Login successful!')
+      router.push('/dashboard')
+    }
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      alert(error.response?.data?.message || 'Invalid login credentials.')
+    if (error instanceof Error) {
+      alert(error.message || 'Invalid login credentials.')
     } else {
       alert('An unexpected error occurred.')
     }
