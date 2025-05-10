@@ -37,12 +37,6 @@ const register = async () => {
     const { data, error } = await supabase.auth.signUp({
       email: email.value,
       password: password.value,
-      options: {
-        data: {
-          first_name: first_name.value,
-          last_name: last_name.value,
-        },
-      },
     })
 
     if (error) {
@@ -55,6 +49,18 @@ const register = async () => {
 
     if (error) {
       throw new Error('registration failed')
+    }
+    const userData = {
+      first_name: first_name.value,
+      last_name: last_name.value,
+      email: email.value,
+    }
+    const { data: insertedData, error: insetedError } = await supabase
+      .from('users')
+      .insert([userData])
+
+    if (insetedError) {
+      throw new Error(insetedError.message)
     }
 
     localStorage.setItem('token', data.session?.access_token || '')
