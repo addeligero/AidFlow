@@ -28,11 +28,13 @@ function onClick() {
 const drawer = ref(false)
 const group = ref(null)
 const userStatus = ref('')
+userStatus.value = 'loggedIn'
 
 // Check user status
 const checkStatus = () => {
-  const token = localStorage.getItem('token')
-  userStatus.value = token ? 'loggedIn' : 'loggedOut'
+  // const token = localStorage.getItem('token')
+  // userStatus.value = token ? 'loggedIn' : 'loggedOut'
+  userStatus.value = 'loggedIn'
 }
 
 watch(group, () => {
