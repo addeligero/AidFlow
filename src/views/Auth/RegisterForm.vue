@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { useTheme } from 'vuetify' // Import useTheme
 import supabase from '@/lib/Supabase'
+import Header from '@/components/HeaderSection.vue'
 
 const router = useRouter()
 
@@ -82,7 +83,8 @@ const register = async () => {
 </script>
 
 <template>
-  <v-container height="100vh" class="d-flex align-center justify-center mx-auto">
+  <Header />
+  <v-container height="100vh" class="d-flex align-center justify-center mt-5">
     <v-sheet
       width="400"
       elevation="8"

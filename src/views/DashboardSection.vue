@@ -1,2 +1,2 @@
-<script></script>
-<template>lore</template>
+<script setup lang="ts"></script>
+<template>hi</template>
