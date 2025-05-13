@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import Sidebar from '@/components/Dashboard/SidebarContainer.vue'
+import Sidebar from '@/components/dashboard/SidebarContainer.vue'
 import Header from '@/components/HeaderSection.vue'
-import Carousel from '@/components/Dashboard/CarouselSection.vue'
-import IconSection from '@/components/Dashboard/IconSection.vue'
+import Carousel from '@/components/dashboard/CarouselSection.vue'
+import IconSection from '@/components/dashboard/IconSection.vue'
 
 const drawer = ref(false)
 const toggleDrawer = () => {
