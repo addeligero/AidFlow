@@ -18,6 +18,7 @@ const toggleDrawer = () => {
 
   <div class="main-content">
     <Carousel />
+
     <IconSection />
   </div>
 </template>
