@@ -55,6 +55,7 @@ const register = async () => {
       first_name: first_name.value,
       last_name: last_name.value,
       email: email.value,
+      user_id: data.user.id,
     }
     const { data: insertedData, error: insetedError } = await supabase
       .from('users')

@@ -24,6 +24,7 @@ const login = async () => {
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.value,
+
       password: password.value,
     })
 

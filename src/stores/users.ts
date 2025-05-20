@@ -4,9 +4,19 @@ import supabase from '@/lib/Supabase'
 
 export const userCounterStore = defineStore('users', () => {
   const user = ref([])
-
+  const authId = sessionStorage.getItem('auth_id')
   const fetchUsers = async () => {
-    const { data, error } = await supabase.from('users').select()
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !authUser) {
+      console.error('Not authenticated:', authError)
+      return
+    }
+
+    const { data, error } = await supabase.from('users').select().eq('user_id', authUser.id)
 
     if (error) {
       console.error('Error fetching users:', error)
