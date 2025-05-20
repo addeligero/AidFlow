@@ -1,14 +1,19 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import Sidebar from '@/components/dashboard/SidebarContainer.vue'
 import Header from '@/components/HeaderSection.vue'
 import Carousel from '@/components/dashboard/CarouselSection.vue'
 import IconSection from '@/components/dashboard/IconSection.vue'
+import { userCounterStore } from '@/stores/users'
 
 const drawer = ref(false)
 const toggleDrawer = () => {
   drawer.value = !drawer.value
 }
+const userCounter = userCounterStore()
+onMounted(async () => {
+  await userCounter.fetchUsers()
+})
 </script>
 
 <template>

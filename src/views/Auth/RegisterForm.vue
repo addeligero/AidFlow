@@ -66,7 +66,7 @@ const register = async () => {
 
     localStorage.setItem('token', data.session?.access_token || '')
     alert('Registration successful!')
-    router.push('/home')
+    router.push('/dashboard')
   } catch (error) {
     console.error('Registration failed:', error)
     if (axios.isAxiosError(error)) {
