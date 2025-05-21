@@ -3,8 +3,9 @@ import { defineStore } from 'pinia'
 import supabase from '@/lib/Supabase'
 
 export const userCounterStore = defineStore('users', () => {
+  const userFullName = ref('')
   const user = ref([])
-  const authId = sessionStorage.getItem('auth_id')
+
   const fetchUsers = async () => {
     const {
       data: { user: authUser },
@@ -16,14 +17,8 @@ export const userCounterStore = defineStore('users', () => {
       return
     }
 
-    const { data, error } = await supabase.from('users').select().eq('user_id', authUser.id)
-
-    if (error) {
-      console.error('Error fetching users:', error)
-    } else {
-      user.value = data
-      console.log('Fetched users:', data)
-    }
+    userFullName.value = authUser.user_metadata.full_name
+    console.log('User full name:', userFullName.value)
   }
 
   return { user, fetchUsers }

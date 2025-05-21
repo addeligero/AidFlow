@@ -2,6 +2,7 @@
 import { userCounterStore } from '@/stores/users'
 
 const user = userCounterStore()
+
 const props = defineProps({
   modelValue: Boolean,
 })
