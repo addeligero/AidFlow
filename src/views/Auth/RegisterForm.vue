@@ -38,6 +38,11 @@ const register = async () => {
     const { data, error } = await supabase.auth.signUp({
       email: email.value,
       password: password.value,
+      options: {
+        data: {
+          full_name: `${first_name.value} ${last_name.value}`,
+        },
+      },
     })
 
     if (error) {

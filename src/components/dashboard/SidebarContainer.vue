@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { userCounterStore } from '@/stores/users'
+
+const user = userCounterStore()
 const props = defineProps({
   modelValue: Boolean,
 })
