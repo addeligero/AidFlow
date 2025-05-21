@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { userCounterStore } from '@/stores/users'
+import supabase from '@/lib/Supabase'
 
 const userStore = userCounterStore()
 
@@ -8,9 +9,14 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:modelValue'])
 
-const logout = () => {
-  localStorage.removeItem('token')
-  window.location.href = '/'
+const logout = async () => {
+  const { error } = await supabase.auth.signOut()
+
+  if (error) {
+    console.error('Logout failed:', error.message)
+  } else {
+    window.location.href = '/'
+  }
 }
 </script>
 

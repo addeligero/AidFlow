@@ -1,9 +1,10 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import supabase from '@/lib/Supabase'
+import type { User } from '@supabase/supabase-js'
 
 export const userCounterStore = defineStore('users', () => {
-  const user = ref([])
+  const user = ref<User[]>([])
   const isUserLoaded = ref(false)
 
   const fetchUsers = async () => {

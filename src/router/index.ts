@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import register from '@/views/Auth/RegisterForm.vue'
+import Register from '@/views/Auth/RegisterForm.vue'
 import Dashboard from '@/views/DashboardSection.vue'
+import supabase from '@/lib/Supabase'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -14,14 +15,30 @@ const router = createRouter({
     {
       path: '/register',
       name: 'register',
-      component: register,
+      component: Register,
     },
     {
       path: '/dashboard',
       name: 'dashboard',
       component: Dashboard,
+      meta: { requiresAuth: true },
     },
   ],
+})
+
+//  Global navigation guard
+router.beforeEach(async (to, from, next) => {
+  if (to.meta.requiresAuth) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return next({ name: 'home' })
+    }
+  }
+
+  return next()
 })
 
 export default router
