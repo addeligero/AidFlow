@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { userCounterStore } from '@/stores/users'
 
-const user = userCounterStore()
+const userStore = userCounterStore()
 
 const props = defineProps({
   modelValue: Boolean,
 })
 const emit = defineEmits(['update:modelValue'])
 
-// Logout function
 const logout = () => {
   localStorage.removeItem('token')
   window.location.href = '/'
@@ -22,15 +21,21 @@ const logout = () => {
     temporary
   >
     <v-list-item
+      v-if="userStore.isUserLoaded"
       prepend-avatar="https://randomuser.me/api/portraits/men/78.jpg"
-      title="John Leider"
-    ></v-list-item>
+      :title="userStore.userFullName"
+    />
+    <v-list-item
+      v-else
+      prepend-avatar="https://randomuser.me/api/portraits/men/78.jpg"
+      title="Loading..."
+    />
 
     <v-divider></v-divider>
 
     <v-list density="compact" nav>
-      <v-list-item prepend-icon="mdi-view-dashboard" title="Home" value="home"></v-list-item>
-      <v-list-item prepend-icon="mdi-forum" title="About" value="about"></v-list-item>
+      <v-list-item prepend-icon="mdi-view-dashboard" title="Home" value="home" />
+      <v-list-item prepend-icon="mdi-forum" title="About" value="about" />
     </v-list>
 
     <v-spacer></v-spacer>

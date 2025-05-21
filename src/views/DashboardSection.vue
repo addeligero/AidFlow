@@ -10,9 +10,11 @@ const drawer = ref(false)
 const toggleDrawer = () => {
   drawer.value = !drawer.value
 }
-const userCounter = userCounterStore()
+
+const userStore = userCounterStore()
+
 onMounted(async () => {
-  await userCounter.fetchUsers()
+  await userStore.fetchUsers()
 })
 </script>
 
