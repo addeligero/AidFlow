@@ -18,6 +18,10 @@ const logout = async () => {
     window.location.href = '/'
   }
 }
+const navigate = (route: string) => {
+  emit('update:modelValue', false)
+  window.location.href = `/${route}`
+}
 </script>
 
 <template>
@@ -40,7 +44,12 @@ const logout = async () => {
     <v-divider></v-divider>
 
     <v-list density="compact" nav>
-      <v-list-item prepend-icon="mdi-view-dashboard" title="Home" value="home" />
+      <v-list-item
+        prepend-icon="mdi-view-dashboard"
+        title="Home"
+        value="home"
+        @click="() => navigate('dashboard')"
+      />
       <v-list-item prepend-icon="mdi-forum" title="About" value="about" />
     </v-list>
 
