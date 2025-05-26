@@ -29,33 +29,42 @@ const navigate = (route: string) => {
     :model-value="props.modelValue"
     @update:model-value="emit('update:modelValue', $event)"
     temporary
+    class="d-flex flex-column"
   >
-    <v-list-item
-      v-if="userStore.isUserLoaded"
-      prepend-avatar="https://randomuser.me/api/portraits/men/78.jpg"
-      :title="userStore.userFullName"
-    />
-    <v-list-item
-      v-else
-      prepend-avatar="https://randomuser.me/api/portraits/men/78.jpg"
-      title="Loading..."
-    />
-
-    <v-divider></v-divider>
-
-    <v-list density="compact" nav>
+    <div>
       <v-list-item
-        prepend-icon="mdi-view-dashboard"
-        title="Home"
-        value="home"
-        @click="() => navigate('dashboard')"
+        v-if="userStore.isUserLoaded"
+        prepend-avatar="https://randomuser.me/api/portraits/men/78.jpg"
+        :title="userStore.userFullName"
       />
-      <v-list-item prepend-icon="mdi-forum" title="About" value="about" />
-    </v-list>
+      <v-list-item
+        v-else
+        prepend-avatar="https://randomuser.me/api/portraits/men/78.jpg"
+        title="Loading..."
+      />
+
+      <v-divider></v-divider>
+
+      <v-list density="compact" nav>
+        <v-list-item
+          prepend-icon="mdi-view-dashboard"
+          title="Home"
+          value="home"
+          @click="() => navigate('dashboard')"
+        />
+        <v-list-item prepend-icon="mdi-forum" title="About" value="about" />
+      </v-list>
+    </div>
 
     <v-spacer></v-spacer>
 
-    <v-btn block color="error" class="mt-4 logout-btn" prepend-icon="mdi-logout" @click="logout">
+    <v-btn
+      block
+      color="error"
+      class="mt-4 mb-4 logout-btn fixed-bottom"
+      prepend-icon="mdi-logout"
+      @click="logout"
+    >
       Logout
     </v-btn>
   </v-navigation-drawer>
