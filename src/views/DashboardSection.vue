@@ -22,11 +22,17 @@ onMounted(async () => {
   <Sidebar v-model="drawer" />
 
   <Header :toggleDrawer="toggleDrawer" />
-
   <div class="main-content">
-    <Carousel />
+    <h3
+      class="text-center text-2xl font-semibold italic text-gray-700 my-6 tracking-wide shadow-sm bg-white bg-opacity-80 px-6 py-3 rounded-lg"
+    >
+      Bringing Clarity and Speed to Public Assistance
+    </h3>
+    <div class="">
+      <Carousel />
 
-    <IconSection />
+      <IconSection />
+    </div>
   </div>
 </template>
 

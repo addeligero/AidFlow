@@ -73,6 +73,8 @@ onMounted(() => {
       <v-app-bar-nav-icon class="fill-height" variant="text"></v-app-bar-nav-icon>
     </v-btn>
   </v-app-bar>
+  <br />
+  <br />
 </template>
 
 <style scoped>

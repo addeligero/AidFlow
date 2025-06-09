@@ -61,7 +61,7 @@ const navigate = (route: string) => {
     <v-btn
       block
       color="error"
-      class="mt-4 mb-4 logout-btn fixed-bottom"
+      class="mt-4 mb-4 logout-btn"
       prepend-icon="mdi-logout"
       @click="logout"
     >
