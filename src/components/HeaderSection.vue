@@ -74,7 +74,6 @@ onMounted(() => {
     </v-btn>
   </v-app-bar>
   <br />
-  <br />
 </template>
 
 <style scoped>

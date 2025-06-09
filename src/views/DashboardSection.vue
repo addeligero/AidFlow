@@ -22,27 +22,33 @@ onMounted(async () => {
   <Sidebar v-model="drawer" />
 
   <Header :toggleDrawer="toggleDrawer" />
+
   <div class="main-content">
     <h3
       class="text-center text-2xl font-semibold italic text-gray-700 my-6 tracking-wide shadow-sm bg-white bg-opacity-80 px-6 py-3 rounded-lg"
     >
       Bringing Clarity and Speed to Public Assistance
     </h3>
-    <div class="">
-      <Carousel />
 
-      <IconSection />
-    </div>
+    <v-container fluid>
+      <v-row justify="center">
+        <!-- Carousel on the left (md=6 = 50%) -->
+        <v-col cols="12" md="6">
+          <Carousel />
+        </v-col>
+
+        <!-- IconSection on the right (md=6 = 50%) -->
+        <v-col cols="12" md="6">
+          <IconSection />
+        </v-col>
+      </v-row>
+    </v-container>
   </div>
 </template>
 
 <style scoped>
 .main-content {
   margin-top: 20px;
-}
-
-.main-content {
-  margin-top: -10px;
 }
 
 .content-wrapper {
