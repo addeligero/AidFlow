@@ -25,9 +25,9 @@ onMounted(async () => {
 
   <div class="main-content">
     <h3
-      class="text-center text-2xl font-semibold italic text-gray-700 my-6 tracking-wide shadow-sm bg-white bg-opacity-80 px-6 py-3 rounded-lg"
+      class="text-center text-3xl font-bold italic text-indigo-700 my-8 tracking-wide shadow-lg bg-gradient-to-r from-white via-gray-100 to-white bg-opacity-80 px-8 py-4 rounded-xl border border-indigo-200 animate-fade-in"
     >
-      Bringing Clarity and Speed to Public Assistance
+      <i>Bringing Clarity and Speed to Public Assistance</i>
     </h3>
 
     <v-container fluid>
