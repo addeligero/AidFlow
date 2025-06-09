@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useTheme } from 'vuetify'
 import { watch, ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 
+const route = useRoute()
 // Props
 
 const { toggleDrawer } = defineProps({
@@ -32,8 +34,6 @@ userStatus.value = 'loggedIn'
 
 // Check user status
 const checkStatus = () => {
-  // const token = localStorage.getItem('token')
-  // userStatus.value = token ? 'loggedIn' : 'loggedOut'
   userStatus.value = 'loggedIn'
 }
 
@@ -69,7 +69,7 @@ onMounted(() => {
     ></v-btn>
 
     <!-- Show the toggle drawer icon only if the user is logged in -->
-    <v-btn v-if="userStatus === 'loggedIn'" @click="toggleDrawer">
+    <v-btn v-if="route.path !== '/'" @click="toggleDrawer">
       <v-app-bar-nav-icon class="fill-height" variant="text"></v-app-bar-nav-icon>
     </v-btn>
   </v-app-bar>
