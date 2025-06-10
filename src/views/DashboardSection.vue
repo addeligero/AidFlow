@@ -24,21 +24,18 @@ onMounted(async () => {
   <Header :toggleDrawer="toggleDrawer" />
 
   <div class="main-content">
-    <h3
-      class="text-center text-3xl font-bold italic text-indigo-700 my-8 tracking-wide shadow-lg bg-gradient-to-r from-white via-gray-100 to-white bg-opacity-80 px-8 py-4 rounded-xl border border-indigo-200 animate-fade-in"
-    >
-      <i>Bringing Clarity and Speed to Public Assistance</i>
-    </h3>
-
     <v-container fluid>
       <v-row justify="center">
-        <!-- Carousel on the left (md=6 = 50%) -->
         <v-col cols="12" md="6">
           <Carousel />
         </v-col>
 
-        <!-- IconSection on the right (md=6 = 50%) -->
         <v-col cols="12" md="6">
+          <h3
+            class="text-center text-3xl font-bold italic text-indigo-700 my-8 tracking-wide shadow-lg bg-gradient-to-r from-white via-gray-100 to-white bg-opacity-80 px-8 py-4 rounded-xl border border-indigo-200 animate-fade-in"
+          >
+            <i>Bringing Clarity and Speed to Public Assistance</i>
+          </h3>
           <IconSection />
         </v-col>
       </v-row>
