@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import image1 from '@/assets/img/Dashboard/family.jpg'
+import image1 from '@/assets/img/Dashboard/heart.jpg'
 import image2 from '@/assets/img/Dashboard/doctors.jpg'
 import image3 from '@/assets/img/Dashboard/pretty.png'
 
