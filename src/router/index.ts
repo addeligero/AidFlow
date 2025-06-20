@@ -3,6 +3,7 @@ import HomeView from '../views/HomeView.vue'
 import Register from '@/views/Auth/RegisterForm.vue'
 import Dashboard from '@/views/ClientDashbaord.vue'
 import supabase from '@/lib/Supabase'
+import AdminDashboard from '@/views/AdminDashboard.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -21,6 +22,12 @@ const router = createRouter({
       path: '/dashboard',
       name: 'dashboard',
       component: Dashboard,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/admin',
+      name: 'AdminDashboard',
+      component: AdminDashboard,
       meta: { requiresAuth: true },
     },
   ],
