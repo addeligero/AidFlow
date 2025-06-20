@@ -1,5 +1,11 @@
 <template>
-  <v-card class="mx-auto" max-width="344" title="Upload Image" subtitle="Check your eligibility">
+  <v-card
+    class="mx-auto"
+    max-width="344"
+    title="Upload Image"
+    subtitle="Check your eligibility"
+    elevation="8"
+  >
     <v-card-actions>
       <v-btn @click="takePicture" prepend-icon="mdi-camera">Take Photo</v-btn>
     </v-card-actions>
