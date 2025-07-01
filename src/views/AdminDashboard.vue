@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import Sidebar from '@/components/Client dashboard/SidebarContainer.vue'
 import Header from '@/components/HeaderSection.vue'
+import AdminCard from '@/components/Admin/AdminCard.vue'
 
 import { userCounterStore } from '@/stores/users'
 
@@ -20,6 +21,7 @@ onMounted(async () => {
 <template>
   <Sidebar v-model="drawer" />
 
+  <AdminCard />
   <Header :toggleDrawer="toggleDrawer" />
 </template>
 
