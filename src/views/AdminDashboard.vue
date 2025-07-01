@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import Sidebar from '@/components/Client dashboard/SidebarContainer.vue'
+import AdminSidebar from '@/components/Admin/AdminSidebar.vue'
 import Header from '@/components/HeaderSection.vue'
-import AdminCard from '@/components/Admin/AdminCard.vue'
 
 import { userCounterStore } from '@/stores/users'
 
@@ -19,10 +18,9 @@ onMounted(async () => {
 </script>
 
 <template>
-  <Sidebar v-model="drawer" />
   <Header :toggleDrawer="toggleDrawer" />
   <div class="main-content">
-    <AdminCard />
+    <AdminSidebar />
   </div>
 </template>
 
