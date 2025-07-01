@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import AdminSidebar from '@/components/Admin/AdminSidebar.vue'
-import Header from '@/components/HeaderSection.vue'
 
 import { userCounterStore } from '@/stores/users'
 
@@ -18,17 +17,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <Header :toggleDrawer="toggleDrawer" />
-  <div class="main-content">
+  <div>
     <AdminSidebar />
   </div>
 </template>
 
 <style scoped>
-.main-content {
-  margin-top: 50px;
-}
-
 .content-wrapper {
   background-color: white;
   padding: 1rem;

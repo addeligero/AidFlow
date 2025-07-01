@@ -1,10 +1,42 @@
 <script setup lang="ts">
+import { useTheme, useDisplay } from 'vuetify'
+import { ref } from 'vue'
 import AdminCard from './AdminCard.vue'
+const drawer = ref(true)
+const { mdAndDown } = useDisplay()
+// Theme toggle
+const theme = useTheme()
+const savedTheme = localStorage.getItem('theme')
+
+if (savedTheme) {
+  theme.global.name.value = savedTheme
+}
+
+function onClick() {
+  const newTheme = theme.global.name.value === 'light' ? 'dark' : 'light'
+  theme.global.name.value = newTheme
+  localStorage.setItem('theme', newTheme)
+}
 </script>
 <template>
   <v-card style="height: 100vh">
     <v-layout style="height: 100%">
-      <v-navigation-drawer expand-on-hover rail height="100%">
+      <v-app-bar flat>
+        <!-- Show hamburger only on md and down -->
+        <v-app-bar-nav-icon v-if="mdAndDown" @click="drawer = !drawer" />
+        <v-toolbar-title>Admin</v-toolbar-title>
+
+        <v-btn
+          :prepend-icon="
+            theme.global.name.value === 'light' ? 'mdi-weather-sunny' : 'mdi-weather-night'
+          "
+          :text="theme.global.name.value === 'light' ? 'Light' : 'Dark'"
+          slim
+          @click="onClick"
+        ></v-btn>
+      </v-app-bar>
+
+      <v-navigation-drawer v-model="drawer" expand-on-hover rail height="100%" app>
         <v-list>
           <v-list-item
             prepend-avatar="https://randomuser.me/api/portraits/women/85.jpg"
