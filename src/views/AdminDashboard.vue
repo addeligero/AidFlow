@@ -20,14 +20,15 @@ onMounted(async () => {
 
 <template>
   <Sidebar v-model="drawer" />
-
-  <AdminCard />
   <Header :toggleDrawer="toggleDrawer" />
+  <div class="main-content">
+    <AdminCard />
+  </div>
 </template>
 
 <style scoped>
 .main-content {
-  margin-top: 20px;
+  margin-top: 50px;
 }
 
 .content-wrapper {
