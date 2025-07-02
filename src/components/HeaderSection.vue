@@ -60,10 +60,10 @@ onMounted(() => {
     <v-spacer></v-spacer>
 
     <v-btn
+      class="border rounded text-center"
       :prepend-icon="
         theme.global.name.value === 'light' ? 'mdi-weather-sunny' : 'mdi-weather-night'
       "
-      :text="theme.global.name.value === 'light' ? 'Light' : 'Dark'"
       slim
       @click="onClick"
     ></v-btn>
