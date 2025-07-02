@@ -2,6 +2,7 @@
 import { useTheme, useDisplay } from 'vuetify'
 import { ref } from 'vue'
 import AdminCard from './AdminCard.vue'
+
 const drawer = ref(true)
 const { mdAndDown } = useDisplay()
 // Theme toggle
@@ -37,6 +38,7 @@ function onClick() {
       </v-app-bar>
 
       <v-navigation-drawer v-model="drawer" expand-on-hover rail height="100%" app>
+        <hr />
         <v-list>
           <v-list-item
             prepend-avatar="https://randomuser.me/api/portraits/women/85.jpg"
@@ -59,6 +61,8 @@ function onClick() {
       </v-navigation-drawer>
 
       <v-main style="height: 100%">
+        <hr />
+
         <AdminCard />
       </v-main>
     </v-layout>
