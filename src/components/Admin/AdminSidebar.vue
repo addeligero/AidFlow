@@ -2,6 +2,9 @@
 import { useTheme, useDisplay } from 'vuetify'
 import { ref } from 'vue'
 import AdminCard from './AdminCard.vue'
+import { userCounterStore } from '@/stores/users'
+
+const user = userCounterStore()
 
 const drawer = ref(true)
 const { mdAndDown } = useDisplay()
@@ -43,7 +46,7 @@ function onClick() {
           <v-list-item
             prepend-avatar="https://randomuser.me/api/portraits/women/85.jpg"
             subtitle="sandra_a88@gmailcom"
-            title="Sandra Adams"
+            :title="user.userFullName"
           ></v-list-item>
         </v-list>
 
