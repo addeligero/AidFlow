@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useTheme, useDisplay } from 'vuetify'
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import AdminCard from '@/components/Admin/AdminCard.vue'
 import { userCounterStore } from '@/stores/users'
 
@@ -21,6 +21,9 @@ function onClick() {
   theme.global.name.value = newTheme
   localStorage.setItem('theme', newTheme)
 }
+onMounted(async () => {
+  await user.fetchUsers()
+})
 </script>
 <template>
   <v-card style="height: 100vh">
@@ -45,7 +48,7 @@ function onClick() {
         <v-list>
           <v-list-item
             prepend-avatar="https://randomuser.me/api/portraits/women/85.jpg"
-            subtitle="sandra_a88@gmailcom"
+            subtitle="sandra_a88@gmailcoms"
             :title="user.userFullName"
           ></v-list-item>
         </v-list>
