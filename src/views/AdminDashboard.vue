@@ -48,7 +48,7 @@ onMounted(async () => {
         <v-list>
           <v-list-item
             prepend-avatar="https://randomuser.me/api/portraits/women/85.jpg"
-            subtitle="sandra_a88@gmailcoms"
+            :subtitle="user.userEmail"
             :title="user.userFullName"
           ></v-list-item>
         </v-list>

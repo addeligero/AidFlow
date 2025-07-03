@@ -35,6 +35,7 @@ const navigate = (route: string) => {
       <v-list-item
         v-if="userStore.isUserLoaded"
         prepend-avatar="https://randomuser.me/api/portraits/men/78.jpg"
+        :subtitle="userStore.userEmail"
         :title="userStore.userFullName"
       />
       <v-list-item

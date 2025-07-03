@@ -31,11 +31,15 @@ export const userCounterStore = defineStore('users', () => {
     const metadata = user.value[0]?.user_metadata || {}
     return metadata.full_name || 'User'
   })
+  const userEmail = computed(() => {
+    return user.value[0]?.email || 'No email'
+  })
 
   return {
     user,
     fetchUsers,
     userFullName,
     isUserLoaded,
+    userEmail,
   }
 })
