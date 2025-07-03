@@ -5,6 +5,9 @@ import Header from '@/components/HeaderSection.vue'
 import Carousel from '@/components/Client dashboard/CarouselSection.vue'
 import IconSection from '@/components/Client dashboard/IconSection.vue'
 import { userCounterStore } from '@/stores/users'
+import { useTheme } from 'vuetify'
+
+const theme = useTheme()
 
 const drawer = ref(false)
 const toggleDrawer = () => {
@@ -23,7 +26,10 @@ onMounted(async () => {
 
   <Header :toggleDrawer="toggleDrawer" />
 
-  <div class="main-content">
+  <div
+    class="main-content"
+    :class="theme.global.name.value === 'dark' ? 'bg-black' : 'bg-grey-lighten-1'"
+  >
     <v-container fluid>
       <v-row justify="center">
         <v-col cols="12" md="6">

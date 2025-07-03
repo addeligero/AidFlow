@@ -40,7 +40,7 @@ function onClick() {
         ></v-btn>
       </v-app-bar>
 
-      <v-navigation-drawer v-model="drawer" expand-on-hover rail height="100%" app>
+      <v-navigation-drawer v-model="drawer" expand-on-hover height="100%" app>
         <hr />
         <v-list>
           <v-list-item
@@ -63,7 +63,10 @@ function onClick() {
         </v-list>
       </v-navigation-drawer>
 
-      <v-main style="height: 100%">
+      <v-main
+        style="height: 100%"
+        :class="theme.global.name.value === 'dark' ? 'bg-black' : 'bg-grey-lighten-1'"
+      >
         <hr />
 
         <AdminCard />
