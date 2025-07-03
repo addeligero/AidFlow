@@ -72,7 +72,12 @@ onMounted(async () => {
       >
         <hr />
         <br />
-        <AdminCard />
+        <AdminCard
+          title="Rules"
+          subHeader="Empower Your Community"
+          shortStatement="Click below to add or update your community guidelines."
+          buttonText="Add Rules"
+        />
       </v-main>
     </v-layout>
   </v-card>
