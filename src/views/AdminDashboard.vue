@@ -31,7 +31,7 @@ onMounted(async () => {
       <v-app-bar flat>
         <!-- Show hamburger only on md and down -->
         <v-app-bar-nav-icon v-if="mdAndDown" @click="drawer = !drawer" />
-        <v-toolbar-title>Admin</v-toolbar-title>
+        <v-toolbar-title><h3>Admin</h3></v-toolbar-title>
 
         <v-btn
           :prepend-icon="

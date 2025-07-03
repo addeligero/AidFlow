@@ -14,7 +14,7 @@ const shortStatement = props.shortStatement ?? 'Short Statement'
 const buttonText = props.buttonText ?? 'Button Text'
 </script>
 <template>
-  <v-card class="mx-auto" max-width="400">
+  <v-card class="mx-auto" max-width="400" elevation="8">
     <v-img class="align-end text-white" height="200" :src="image">
       <v-card-title>{{ title }}</v-card-title>
     </v-img>

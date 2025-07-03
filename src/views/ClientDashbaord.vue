@@ -29,6 +29,7 @@ onMounted(async () => {
   <div
     class="main-content"
     :class="theme.global.name.value === 'dark' ? 'bg-black' : 'bg-grey-lighten-1'"
+    style="min-height: 100vh"
   >
     <v-container fluid>
       <v-row justify="center">
