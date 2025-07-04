@@ -7,9 +7,15 @@ import img from '@/assets/img/1.png'
   <v-app>
     <v-main>
       <Header />
-      <v-container fluid class="fill-height d-flex align-center justify-center">
-        <img :src="img" style="max-width: 50%" />
-        <Login />
+      <v-container fluid>
+        <v-row class="w-100" align="center" justify="center">
+          <v-col cols="12" md="6" class="d-flex justify-center align-center">
+            <img :src="img" style="max-width: 100%; height: auto" />
+          </v-col>
+          <v-col cols="12" md="6" class="d-flex justify-center align-center">
+            <Login />
+          </v-col>
+        </v-row>
       </v-container>
     </v-main>
   </v-app>

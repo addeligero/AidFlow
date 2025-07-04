@@ -24,7 +24,6 @@ const login = async () => {
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.value,
-
       password: password.value,
     })
 
@@ -34,8 +33,6 @@ const login = async () => {
 
     if (data.session) {
       const { session, user } = data
-
-      // Storing tokens in sessionStorage (more secure than localStorage)
       sessionStorage.setItem('access_token', session.access_token)
       sessionStorage.setItem('refresh_token', session.refresh_token)
       sessionStorage.setItem('auth_id', user.id)
@@ -56,15 +53,64 @@ const login = async () => {
 </script>
 
 <template>
-  <v-sheet class="mx-auto py-4 rounded-lg" width="300">
-    <h3 class="text-center">Login</h3>
-    <v-form fast-fail @submit.prevent="login">
-      <v-text-field v-model="email" label="Email" type="email" required></v-text-field>
+  <div class="login-bg d-flex align-center justify-center min-h-screen">
+    <v-sheet class="mx-auto py-8 px-6 rounded-xl login-sheet" width="370" elevation="12">
+      <div class="text-center mb-6">
+        <v-avatar size="56" class="mb-2" color="primary">
+          <v-icon size="36" color="white">mdi-account-circle</v-icon>
+        </v-avatar>
+        <h2 class="font-weight-bold mb-1">Welcome Back</h2>
+        <p class="text-grey-darken-1">Sign in to your account</p>
+      </div>
+      <v-form fast-fail @submit.prevent="login">
+        <v-text-field
+          v-model="email"
+          label="Email"
+          type="email"
+          variant="outlined"
+          density="comfortable"
+          prepend-inner-icon="mdi-email-outline"
+          class="mb-3"
+          required
+        ></v-text-field>
 
-      <v-text-field v-model="password" label="Password" type="password" required></v-text-field>
+        <v-text-field
+          v-model="password"
+          label="Password"
+          type="password"
+          variant="outlined"
+          density="comfortable"
+          prepend-inner-icon="mdi-lock-outline"
+          class="mb-4"
+          required
+        ></v-text-field>
 
-      <v-btn :loading="isSubmitting" class="mt-2" type="submit" block> Submit </v-btn>
-      <p class="pt-2">Don't have account? <a href="/register">click here</a></p>
-    </v-form>
-  </v-sheet>
+        <v-btn
+          :loading="isSubmitting"
+          class="mb-3"
+          type="submit"
+          block
+          color="primary"
+          size="large"
+          elevation="2"
+        >
+          Sign In
+        </v-btn>
+        <div class="text-center">
+          <span class="text-grey-darken-1">Don't have an account?</span>
+          <a href="/register" class="text-primary font-weight-medium ml-1">Register</a>
+        </div>
+      </v-form>
+    </v-sheet>
+  </div>
 </template>
+
+<style scoped>
+.login-bg {
+  min-height: 100vh;
+}
+.login-sheet {
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.12);
+  border: 1px solid #e3e8ee;
+}
+</style>
