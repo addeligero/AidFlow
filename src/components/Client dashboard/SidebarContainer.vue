@@ -23,15 +23,14 @@ const navigate = (route: string) => {
   window.location.href = `/${route}`
 }
 </script>
-
 <template>
   <v-navigation-drawer
     :model-value="props.modelValue"
     @update:model-value="emit('update:modelValue', $event)"
     temporary
-    class="d-flex flex-column"
+    class="drawer-root d-flex flex-column"
   >
-    <div>
+    <div class="drawer-content">
       <v-list-item
         v-if="userStore.isUserLoaded"
         prepend-avatar="https://randomuser.me/api/portraits/men/78.jpg"
@@ -57,12 +56,10 @@ const navigate = (route: string) => {
       </v-list>
     </div>
 
-    <v-spacer></v-spacer>
-
     <v-btn
       block
       color="error"
-      class="mt-4 mb-4 logout-btn"
+      class="logout-btn fixed-logout"
       prepend-icon="mdi-logout"
       @click="logout"
     >
@@ -72,10 +69,29 @@ const navigate = (route: string) => {
 </template>
 
 <style scoped>
+.drawer-root {
+  position: relative;
+  height: 100vh;
+}
+.drawer-content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 70px;
+}
 .logout-btn {
   font-weight: bold;
   color: white;
   border-radius: 8px;
   text-transform: uppercase;
+}
+.fixed-logout {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0 0 12px 0;
+  width: calc(100% - 0px);
+  z-index: 2;
 }
 </style>
