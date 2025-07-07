@@ -44,6 +44,14 @@ router.beforeEach(async (to, from, next) => {
       return next({ name: 'home' })
     }
   }
+  if (to.name === 'register' || to.name === 'home') {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user) {
+      return next({ name: 'dashboard' })
+    }
+  }
 
   return next()
 })
