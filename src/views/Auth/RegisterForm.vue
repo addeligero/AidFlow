@@ -14,6 +14,10 @@ const email = ref('')
 const password = ref('')
 const password_confirmation = ref('')
 const isSubmitting = ref(false)
+const showSuccess = ref(false)
+const showDialog = ref(false)
+const loginFailed = ref(false)
+const errorMessage = ref('')
 
 const theme = useTheme() // Get current theme
 
@@ -25,11 +29,23 @@ const register = async () => {
     !password.value ||
     !password_confirmation.value
   ) {
-    alert('Please fill in all fields.')
+    errorMessage.value = 'Please fill in all fields.'
+    showSuccess.value = false
+    loginFailed.value = true
+    showDialog.value = true
+    setTimeout(() => {
+      showDialog.value = false
+    }, 5000)
     return
   }
   if (password.value !== password_confirmation.value) {
-    alert('Passwords do not match.')
+    errorMessage.value = 'Passwords do not match.'
+    showSuccess.value = false
+    loginFailed.value = true
+    showDialog.value = true
+    setTimeout(() => {
+      showDialog.value = false
+    }, 5000)
     return
   }
   isSubmitting.value = true
@@ -71,9 +87,21 @@ const register = async () => {
     }
 
     localStorage.setItem('token', data.session?.access_token || '')
-    alert('Registration successful!')
+    showSuccess.value = true
+    loginFailed.value = false
+    showDialog.value = true
+    setTimeout(() => {
+      showDialog.value = false
+      router.push('/dashboard')
+    }, 1500)
     router.push('/dashboard')
   } catch (error) {
+    showSuccess.value = false
+    loginFailed.value = true
+    showDialog.value = true
+    setTimeout(() => {
+      showDialog.value = false
+    }, 5000)
     console.error('Registration failed:', error)
     if (axios.isAxiosError(error)) {
       alert(error.response?.data?.message || 'Something went wrong.')
@@ -170,5 +198,37 @@ const register = async () => {
         </router-link>
       </v-form>
     </v-sheet>
+
+    <!-- Dialog for login result -->
+    <v-dialog v-model="showDialog" max-width="360" persistent>
+      <v-card :color="showSuccess ? 'success' : 'error'" elevation="12" class="rounded-xl">
+        <v-card-text class="text-center py-6">
+          <v-avatar size="56" class="mb-3" :color="showSuccess ? 'white' : 'white'">
+            <v-icon size="40" :color="showSuccess ? 'success' : 'error'">
+              {{ showSuccess ? 'mdi-check-circle-outline' : 'mdi-alert-circle-outline' }}
+            </v-icon>
+          </v-avatar>
+          <div>
+            <h3 class="mb-1" :class="showSuccess ? 'text-success' : 'text-error'">
+              {{ showSuccess ? 'Login Successful!' : 'Login Failed' }}
+            </h3>
+            <p class="text-body-1" v-if="showSuccess">Redirecting to your dashboard...</p>
+            <p class="text-body-2" v-else>{{ errorMessage }}</p>
+          </div>
+        </v-card-text>
+        <v-divider></v-divider>
+        <v-card-actions class="justify-center py-3">
+          <v-btn
+            v-if="!showSuccess"
+            color="primary"
+            variant="flat"
+            @click="showDialog = false"
+            rounded
+          >
+            Close
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
