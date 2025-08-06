@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { userCounterStore } from '@/stores/users'
 import supabase from '@/lib/Supabase'
+import { ref, onMounted } from 'vue'
 
 const userStore = userCounterStore()
+const showAvatarDialog = ref(false)
+const selectedImage = ref('https://randomuser.me/api/portraits/men/78.jpg')
 
 const props = defineProps({
   modelValue: Boolean,
@@ -22,8 +25,77 @@ const navigate = (route: string) => {
   emit('update:modelValue', false)
   window.location.href = `/${route}`
 }
+
+// Handle file upload
+const handleFileUpload = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  // Get user ID first
+  const { data: userData } = await supabase.auth.getUser()
+  const userId = userData.user?.id
+  if (!userId) {
+    console.error('No authenticated user found')
+    return
+  }
+
+  // Generate a safe file path (store in user folder)
+  const filePath = `${userId}/profile.png`
+
+  // Upload to Supabase Storage
+  const { error: uploadError } = await supabase.storage
+    .from('avatars')
+    .upload(filePath, file, { upsert: true })
+
+  if (uploadError) {
+    console.error('Upload failed:', uploadError.message)
+    return
+  }
+
+  // Get public URL
+  const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
+
+  const publicUrl = publicUrlData.publicUrl
+
+  // Save URL to the users table
+  const { error: updateError } = await supabase
+    .from('users')
+    .update({ img: publicUrl })
+    .eq('user_id', userId)
+
+  if (updateError) {
+    console.error('Failed to update user image:', updateError.message)
+    return
+  }
+
+  // Update UI
+  selectedImage.value = publicUrl
+}
 </script>
 <template>
+  <!-- Dialog -->
+  <v-dialog v-model="showAvatarDialog" max-width="400">
+    <v-card>
+      <v-card-title class="text-h6">Profile Photo</v-card-title>
+      <v-card-text class="d-flex flex-column align-center">
+        <v-img :src="selectedImage" width="150" height="150" class="mb-4" cover />
+        <v-btn color="primary" @click="$refs.fileInput.click()">Change Photo</v-btn>
+        <input
+          ref="fileInput"
+          type="file"
+          accept="image/*"
+          class="d-none"
+          @change="handleFileUpload"
+        />
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn text @click="showAvatarDialog = false">Close</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
   <v-navigation-drawer
     :model-value="props.modelValue"
     @update:model-value="emit('update:modelValue', $event)"
@@ -33,14 +105,19 @@ const navigate = (route: string) => {
     <div class="drawer-content">
       <v-list-item
         v-if="userStore.isUserLoaded"
-        prepend-avatar="https://randomuser.me/api/portraits/men/78.jpg"
+        :prepend-avatar="
+          selectedImage || userStore.userImg || 'https://randomuser.me/api/portraits/men/78.jpg'
+        "
         :subtitle="userStore.userEmail"
         :title="userStore.userFullName"
+        @click="showAvatarDialog = true"
       />
+
       <v-list-item
         v-else
         prepend-avatar="https://randomuser.me/api/portraits/men/78.jpg"
         title="Loading..."
+        @click="showAvatarDialog = true"
       />
 
       <v-divider></v-divider>
