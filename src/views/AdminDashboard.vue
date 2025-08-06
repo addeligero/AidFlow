@@ -31,13 +31,12 @@ onMounted(async () => {
       <v-app-bar flat>
         <!-- Show hamburger only on md and down -->
         <v-app-bar-nav-icon v-if="mdAndDown" @click="drawer = !drawer" />
-        <v-toolbar-title><h3>Admin</h3></v-toolbar-title>
+        <v-toolbar-title><h4>Admin</h4></v-toolbar-title>
 
         <v-btn
           :prepend-icon="
             theme.global.name.value === 'light' ? 'mdi-weather-sunny' : 'mdi-weather-night'
           "
-          :text="theme.global.name.value === 'light' ? 'Light' : 'Dark'"
           slim
           @click="onClick"
         ></v-btn>
@@ -72,12 +71,14 @@ onMounted(async () => {
       >
         <hr />
         <br />
-        <AdminCard
-          title="Rules"
-          subHeader="Empower Your Community"
-          shortStatement="Click below to add or update your community guidelines."
-          buttonText="Add Rules"
-        />
+
+        <v-container>
+          <AdminCard
+            title="Rules"
+            subHeader="Empower Your Community"
+            shortStatement="Click below to add or update your community guidelines."
+            buttonText="Add Rules"
+        /></v-container>
       </v-main>
     </v-layout>
   </v-card>
