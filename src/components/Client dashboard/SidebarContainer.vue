@@ -62,7 +62,7 @@ const handleFileUpload = async (event: Event) => {
   // Generate a safe file path (store in user folder)
   const fileExt = file.name.split('.').pop()
   const fileName = `${userId}-${Date.now()}.${fileExt}`
-  const filePath = `${userId}/${fileName}`
+  const filePath = `client-profile/${fileName}`
 
   // Upload to Supabase Storage
   const { error: uploadError } = await supabase.storage
@@ -98,10 +98,15 @@ const handleFileUpload = async (event: Event) => {
   <!-- Dialog -->
   <v-dialog v-model="showAvatarDialog" max-width="400">
     <v-card>
-      <v-card-title class="text-h6">Profile Photo</v-card-title>
+      <v-card-title class="text-h6">Update Profile Photo</v-card-title>
+
       <v-card-text class="d-flex flex-column align-center">
-        <v-img :src="selectedImage" width="150" height="150" class="mb-4" cover />
-        <v-btn color="primary" @click="$refs.fileInput.click()">Change Photo</v-btn>
+        <v-avatar size="150" class="mb-4">
+          <v-img :src="selectedImage" cover />
+        </v-avatar>
+
+        <v-btn color="primary" @click="$refs.fileInput.click()"> Choose New Photo </v-btn>
+
         <input
           ref="fileInput"
           type="file"
@@ -110,8 +115,9 @@ const handleFileUpload = async (event: Event) => {
           @change="handleFileUpload"
         />
       </v-card-text>
+
       <v-card-actions>
-        <v-spacer></v-spacer>
+        <v-spacer />
         <v-btn text @click="showAvatarDialog = false">Close</v-btn>
       </v-card-actions>
     </v-card>
