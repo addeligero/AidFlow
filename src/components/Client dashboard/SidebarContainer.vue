@@ -7,6 +7,25 @@ const userStore = userCounterStore()
 const showAvatarDialog = ref(false)
 const selectedImage = ref('https://randomuser.me/api/portraits/men/78.jpg')
 
+//chech the image idol
+
+onMounted(async () => {
+  const { data: userData } = await supabase.auth.getUser()
+  const userId = userData.user?.id
+  if (!userId) return
+
+  const { data, error } = await supabase.from('users').select('img').eq('user_id', userId).single()
+
+  if (error) {
+    console.error('Error fetching user image:', error.message)
+    return
+  }
+
+  if (data?.img) {
+    selectedImage.value = data.img
+  }
+})
+
 const props = defineProps({
   modelValue: Boolean,
 })
@@ -41,7 +60,9 @@ const handleFileUpload = async (event: Event) => {
   }
 
   // Generate a safe file path (store in user folder)
-  const filePath = `${userId}/profile.png`
+  const fileExt = file.name.split('.').pop()
+  const fileName = `${userId}-${Date.now()}.${fileExt}`
+  const filePath = `${userId}/${fileName}`
 
   // Upload to Supabase Storage
   const { error: uploadError } = await supabase.storage
