@@ -6,12 +6,6 @@ import Carousel from '@/components/Client dashboard/CarouselSection.vue'
 import IconSection from '@/components/Client dashboard/IconSection.vue'
 import { userCounterStore } from '@/stores/users'
 import { useTheme } from 'vuetify'
-import DOH from '@/assets/img/logo/doh.png'
-import DSWD from '@/assets/img/logo/DSWD.SVG.png'
-import MALASAKIT from '@/assets/img/logo/malasakit.jpg'
-import LogoImage from '@/components/Client dashboard/LogoImage.vue'
-import pcso from '@/assets/img/logo/pcso.jpg'
-import Philhealth from '@/assets/img/logo/philhealth.jpg'
 
 const theme = useTheme()
 
@@ -45,27 +39,7 @@ onMounted(async () => {
 
         <v-col cols="12" md="6">
           <hr />
-          <br />
-          <v-row class="justify-center">
-            <v-col cols="2">
-              <LogoImage :loc="DOH" />
-            </v-col>
-            <v-col cols="2">
-              <LogoImage :loc="DSWD" />
-            </v-col>
-            <v-col cols="2">
-              <LogoImage :loc="MALASAKIT" />
-            </v-col>
-            <v-col cols="2">
-              <LogoImage :loc="pcso" />
-            </v-col>
-            <v-col cols="2">
-              <LogoImage :loc="Philhealth" />
-            </v-col>
-          </v-row>
-          <br />
-          <hr />
-
+          <h3>Services</h3>
           <IconSection />
         </v-col>
       </v-row>
