@@ -6,7 +6,8 @@ import { userCounterStore } from '@/stores/users'
 import supabase from '@/lib/Supabase'
 
 const user = userCounterStore()
-
+const props = defineProps<{ userAvatar?: string }>()
+const localAvatar = ref(props.userAvatar)
 const drawer = ref(true)
 const { mdAndDown } = useDisplay()
 
@@ -96,7 +97,6 @@ const handleFileUpload = async (event: Event) => {
   }
 
   selectedImage.value = publicUrl
-  user.userAvatar = publicUrl
 }
 </script>
 

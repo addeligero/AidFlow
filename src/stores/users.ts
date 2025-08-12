@@ -4,6 +4,7 @@ import supabase from '@/lib/Supabase'
 import type { User } from '@supabase/supabase-js'
 
 export const userCounterStore = defineStore('users', () => {
+  const userImg: string = 'https://randomuser.me/api/portraits/'
   const user = ref<User[]>([])
   const isUserLoaded = ref(false)
 
@@ -35,11 +36,21 @@ export const userCounterStore = defineStore('users', () => {
     return user.value[0]?.email || 'No email'
   })
 
+  const userAvatar = computed(() => {
+    const metadata = user.value[0]?.user_metadata || {}
+
+    const gender = metadata.gender === 'female' ? 'women' : 'men'
+    const id = metadata.avatar_id || '1'
+    return `${userImg}${gender}/${id}.jpg`
+  })
+
   return {
     user,
     fetchUsers,
     userFullName,
     isUserLoaded,
     userEmail,
+    userImg,
+    userAvatar,
   }
 })

@@ -6,9 +6,12 @@ import { ref, onMounted } from 'vue'
 const userStore = userCounterStore()
 const showAvatarDialog = ref(false)
 const selectedImage = ref('https://randomuser.me/api/portraits/men/78.jpg')
+const fileInput = ref<HTMLInputElement | null>(null)
+const triggerFileInput = () => {
+  ;(fileInput.value as HTMLInputElement)?.click()
+}
 
 //chech the image idol
-
 onMounted(async () => {
   const { data: userData } = await supabase.auth.getUser()
   const userId = userData.user?.id
@@ -105,8 +108,9 @@ const handleFileUpload = async (event: Event) => {
           <v-img :src="selectedImage" cover />
         </v-avatar>
 
-        <v-btn color="primary" @click="$refs.fileInput.click()"> Choose New Photo </v-btn>
-
+        // ...existing code...
+        <v-btn color="primary" @click="triggerFileInput"> Choose New Photo </v-btn>
+        // ...existing code...
         <input
           ref="fileInput"
           type="file"
