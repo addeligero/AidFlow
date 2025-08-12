@@ -6,6 +6,12 @@ import Carousel from '@/components/Client dashboard/CarouselSection.vue'
 import IconSection from '@/components/Client dashboard/IconSection.vue'
 import { userCounterStore } from '@/stores/users'
 import { useTheme } from 'vuetify'
+import DOH from '@/assets/img/logo/doh.png'
+import DSWD from '@/assets/img/logo/DSWD.SVG.png'
+import MALASAKIT from '@/assets/img/logo/malasakit.jpg'
+import LogoImage from '@/components/Client dashboard/LogoImage.vue'
+import pcso from '@/assets/img/logo/pcso.jpg'
+import Philhealth from '@/assets/img/logo/philhealth.jpg'
 
 const theme = useTheme()
 
@@ -38,11 +44,28 @@ onMounted(async () => {
         </v-col>
 
         <v-col cols="12" md="6">
-          <h3
-            class="text-center text-3xl font-bold italic text-indigo-700 my-8 tracking-wide shadow-lg bg-gradient-to-r from-white via-gray-100 to-white bg-opacity-80 px-8 py-4 rounded-xl border border-indigo-200 animate-fade-in"
-          >
-            <i>Bringing Clarity and Speed to Public Assistance</i>
-          </h3>
+          <hr />
+          <br />
+          <v-row class="justify-center">
+            <v-col cols="2">
+              <LogoImage :loc="DOH" />
+            </v-col>
+            <v-col cols="2">
+              <LogoImage :loc="DSWD" />
+            </v-col>
+            <v-col cols="2">
+              <LogoImage :loc="MALASAKIT" />
+            </v-col>
+            <v-col cols="2">
+              <LogoImage :loc="pcso" />
+            </v-col>
+            <v-col cols="2">
+              <LogoImage :loc="Philhealth" />
+            </v-col>
+          </v-row>
+          <br />
+          <hr />
+
           <IconSection />
         </v-col>
       </v-row>
