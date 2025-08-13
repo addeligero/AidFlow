@@ -108,9 +108,8 @@ const handleFileUpload = async (event: Event) => {
           <v-img :src="selectedImage" cover />
         </v-avatar>
 
-        // ...existing code...
         <v-btn color="primary" @click="triggerFileInput"> Choose New Photo </v-btn>
-        // ...existing code...
+
         <input
           ref="fileInput"
           type="file"

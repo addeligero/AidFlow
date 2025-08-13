@@ -12,7 +12,7 @@ const images = [Philhealth, DOH, DSWD, MALASAKIT, pcso]
 </script>
 
 <template>
-  <v-sheet class="mx-auto" elevation="8" max-width="800" color="transparent">
+  <v-sheet class="mx-auto" max-width="800" color="transparent">
     <v-slide-group v-model="model" selected-class="bg-success">
       <v-slide-group-item v-for="(img, i) in images" :key="i" v-slot="{ toggle, selectedClass }">
         <v-card :class="['ma-4', selectedClass]" height="150" width="250" @click="toggle">
