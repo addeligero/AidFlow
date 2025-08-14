@@ -3,79 +3,86 @@ import { defineStore } from 'pinia'
 import supabase from '@/lib/Supabase'
 import type { User } from '@supabase/supabase-js'
 
-export const useUserStore = defineStore('user', () => {
-  const user = ref<User | null>(null)
-  const isUserLoaded = ref(false)
-  const isImageUploading = ref(false)
-  const userProfileImg = ref<string>('')
+export const useUserStore = defineStore(
+  'user',
+  () => {
+    const user = ref<User | null>(null)
+    const isUserLoaded = ref(false)
+    const isImageUploading = ref(false)
+    const userProfileImg = ref<string>('')
 
-  // Fetch the authenticated user and profile image
-  const fetchUser = async () => {
-    if (isUserLoaded.value) return
+    // Fetch the authenticated user and profile image
+    const fetchUser = async () => {
+      console.log('Fetching user data...')
+      if (isUserLoaded.value) return
+      console.log('Fetching user data...', isUserLoaded.value)
 
-    const {
-      data: { user: authUser },
-      error: authError,
-    } = await supabase.auth.getUser()
+      const {
+        data: { user: authUser },
+        error: authError,
+      } = await supabase.auth.getUser()
 
-    if (authError || !authUser) {
-      console.error('Not authenticated:', authError)
-      isUserLoaded.value = true
-      return
+      if (authError || !authUser) {
+        console.error('Not authenticated:', authError)
+        isUserLoaded.value = false
+        return
+      }
+
+      user.value = authUser
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('img')
+        .eq('user_id', authUser.id)
+        .single()
+
+      if (!error && data?.img) {
+        userProfileImg.value = data.img
+        isUserLoaded.value = true
+      } else {
+        // Fallback avatar from metadata
+        const metadata = authUser.user_metadata || {}
+        const gender = metadata.gender === 'female' ? 'women' : 'men'
+        const id = metadata.avatar_id || '1'
+        userProfileImg.value = `https://randomuser.me/api/portraits/${gender}/${id}.jpg`
+      }
     }
 
-    user.value = authUser
-
-    const { data, error } = await supabase
-      .from('users')
-      .select('img')
-      .eq('user_id', authUser.id)
-      .single()
-
-    if (!error && data?.img) {
-      userProfileImg.value = data.img
-    } else {
-      // Fallback avatar from metadata
-      const metadata = authUser.user_metadata || {}
-      const gender = metadata.gender === 'female' ? 'women' : 'men'
-      const id = metadata.avatar_id || '1'
-      userProfileImg.value = `https://randomuser.me/api/portraits/${gender}/${id}.jpg`
+    const startImageUpload = () => {
+      isImageUploading.value = true
     }
 
-    isUserLoaded.value = true
-  }
+    const finishImageUpload = (newImageUrl: string) => {
+      userProfileImg.value = newImageUrl
+      isImageUploading.value = false
+    }
 
-  const startImageUpload = () => {
-    isImageUploading.value = true
-  }
+    const userFullName = computed(() => {
+      return user.value?.user_metadata?.full_name || 'User'
+    })
 
-  const finishImageUpload = (newImageUrl: string) => {
-    userProfileImg.value = newImageUrl
-    isImageUploading.value = false
-  }
+    const userEmail = computed(() => {
+      return user.value?.email || 'No email'
+    })
 
-  const userFullName = computed(() => {
-    return user.value?.user_metadata?.full_name || 'User'
-  })
+    const user_id = computed(() => {
+      return user.value?.id || 'No email'
+    })
 
-  const userEmail = computed(() => {
-    return user.value?.email || 'No email'
-  })
-
-  const user_id = computed(() => {
-    return user.value?.id || 'No email'
-  })
-
-  return {
-    user,
-    isUserLoaded,
-    isImageUploading,
-    userProfileImg,
-    fetchUser,
-    startImageUpload,
-    finishImageUpload,
-    userFullName,
-    userEmail,
-    user_id,
-  }
-})
+    return {
+      user,
+      isUserLoaded,
+      isImageUploading,
+      userProfileImg,
+      fetchUser,
+      startImageUpload,
+      finishImageUpload,
+      userFullName,
+      userEmail,
+      user_id,
+    }
+  },
+  {
+    persist: true,
+  },
+)

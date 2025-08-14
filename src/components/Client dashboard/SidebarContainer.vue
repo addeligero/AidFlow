@@ -2,7 +2,9 @@
 import { useUserStore } from '@/stores/users'
 import supabase from '@/lib/Supabase'
 import { ref } from 'vue'
+import { useRoute } from 'vue-router' // ✅ to check active route
 
+const route = useRoute()
 const userStore = useUserStore()
 
 const props = defineProps({
@@ -23,13 +25,9 @@ const logout = async () => {
   if (error) {
     console.error('Logout failed:', error.message)
   } else {
-    window.location.href = '/'
+    userStore.$reset()
+    window.location.href = '/' // Logout should refresh
   }
-}
-
-const navigate = (route: string) => {
-  emit('update:modelValue', false)
-  window.location.href = `/${route}`
 }
 
 // Upload and update store
@@ -47,13 +45,12 @@ const handleFileUpload = async (event: Event) => {
     return
   }
 
-  isUploading.value = true // Start loading state
+  isUploading.value = true
 
   const fileExt = file.name.split('.').pop()
   const fileName = `${authUser.id}-${Date.now()}.${fileExt}`
   const filePath = `client-profile/${fileName}`
 
-  // Upload to storage
   const { error: uploadError } = await supabase.storage
     .from('avatars')
     .upload(filePath, file, { upsert: true })
@@ -64,11 +61,9 @@ const handleFileUpload = async (event: Event) => {
     return
   }
 
-  // Get public URL
   const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
   const publicUrl = publicUrlData.publicUrl
 
-  // Save URL in users table
   const { error: updateError } = await supabase
     .from('users')
     .update({ img: publicUrl })
@@ -80,10 +75,7 @@ const handleFileUpload = async (event: Event) => {
     return
   }
 
-  // Update Pinia store immediately
   userStore.userProfileImg = publicUrl
-
-  // End loading state
   isUploading.value = false
 }
 </script>
@@ -150,17 +142,50 @@ const handleFileUpload = async (event: Event) => {
 
       <!-- Navigation -->
       <v-list density="compact" nav>
-        <v-list-item
-          prepend-icon="mdi-view-dashboard"
-          title="Home"
-          @click="() => navigate('dashboard')"
-        />
-        <v-list-item prepend-icon="mdi-forum" title="About" />
-        <v-list-item
-          prepend-icon="mdi-forum"
-          title="Be a provider"
-          @click="() => navigate('application')"
-        />
+        <!-- Home -->
+        <RouterLink to="/dashboard" custom v-slot="{ navigate }">
+          <v-list-item
+            prepend-icon="mdi-view-dashboard"
+            title="Home"
+            :active="route.path === '/dashboard'"
+            @click="
+              () => {
+                emit('update:modelValue', false)
+                navigate()
+              }
+            "
+          />
+        </RouterLink>
+
+        <!-- About -->
+        <RouterLink to="/about" custom v-slot="{ navigate }">
+          <v-list-item
+            prepend-icon="mdi-forum"
+            title="About"
+            :active="route.path === '/about'"
+            @click="
+              () => {
+                emit('update:modelValue', false)
+                navigate()
+              }
+            "
+          />
+        </RouterLink>
+
+        <!-- Be a provider -->
+        <RouterLink to="/application" custom v-slot="{ navigate }">
+          <v-list-item
+            prepend-icon="mdi-forum"
+            title="Be a provider"
+            :active="route.path === '/application'"
+            @click="
+              () => {
+                emit('update:modelValue', false)
+                navigate()
+              }
+            "
+          />
+        </RouterLink>
       </v-list>
     </div>
 

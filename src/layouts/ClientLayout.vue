@@ -14,7 +14,12 @@ const toggleDrawer = () => {
 const userStore = useUserStore()
 
 onMounted(async () => {
-  await userStore.fetchUser()
+  if (!userStore.isUserLoaded) {
+    console.log('Fetching user data...')
+    await userStore.fetchUser()
+  }
+
+  console.log('laktaw')
 })
 </script>
 

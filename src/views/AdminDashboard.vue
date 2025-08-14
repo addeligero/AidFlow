@@ -7,7 +7,6 @@ import supabase from '@/lib/Supabase'
 
 const user = useUserStore()
 const props = defineProps<{ userAvatar?: string }>()
-const localAvatar = ref(props.userAvatar)
 const drawer = ref(true)
 const { mdAndDown } = useDisplay()
 
@@ -29,11 +28,10 @@ const selectedImage = ref(user.userProfileImg || 'https://randomuser.me/api/port
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
 onMounted(async () => {
-  if (!user.isUserLoaded) {
+  if ((user.isUserLoaded = false)) {
     await user.fetchUser()
+    selectedImage.value = user.userProfileImg
   }
-
-  selectedImage.value = user.userProfileImg
 })
 
 const handleFileUpload = async (event: Event) => {
