@@ -62,6 +62,10 @@ export const useUserStore = defineStore('user', () => {
     return user.value?.email || 'No email'
   })
 
+  const user_id = computed(() => {
+    return user.value?.id || 'No email'
+  })
+
   return {
     user,
     isUserLoaded,
@@ -72,5 +76,6 @@ export const useUserStore = defineStore('user', () => {
     finishImageUpload,
     userFullName,
     userEmail,
+    user_id,
   }
 })

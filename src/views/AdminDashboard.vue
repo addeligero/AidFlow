@@ -25,26 +25,15 @@ function onClick() {
 
 // Avatar handling
 const showAvatarDialog = ref(false)
-const selectedImage = ref(user.userAvatar || 'https://randomuser.me/api/portraits/women/85.jpg')
+const selectedImage = ref(user.userProfileImg || 'https://randomuser.me/api/portraits/women/85.jpg')
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
 onMounted(async () => {
-  await user.fetchUsers()
-
-  const { data: userData } = await supabase.auth.getUser()
-  const userId = userData.user?.id
-  if (!userId) return
-
-  const { data, error } = await supabase.from('users').select('img').eq('user_id', userId).single()
-
-  if (error) {
-    console.error('Error fetching user image:', error.message)
-    return
+  if (!user.isUserLoaded) {
+    await user.fetchUser()
   }
 
-  if (data?.img) {
-    selectedImage.value = data.img
-  }
+  selectedImage.value = user.userProfileImg
 })
 
 const handleFileUpload = async (event: Event) => {

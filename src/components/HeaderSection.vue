@@ -2,10 +2,9 @@
 import { useTheme } from 'vuetify'
 import { watch, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useUserStore } from '@/stores/users'
 
 const route = useRoute()
-// Props
-
 const { toggleDrawer } = defineProps({
   toggleDrawer: {
     type: Function,
@@ -16,7 +15,6 @@ const { toggleDrawer } = defineProps({
 // Theme toggle
 const theme = useTheme()
 const savedTheme = localStorage.getItem('theme')
-
 if (savedTheme) {
   theme.global.name.value = savedTheme
 }
@@ -27,30 +25,23 @@ function onClick() {
   localStorage.setItem('theme', newTheme)
 }
 
+const userStore = useUserStore()
 const drawer = ref(false)
 const group = ref(null)
-const userStatus = ref('')
-userStatus.value = 'loggedIn'
 
-// Check user status
-const checkStatus = () => {
-  userStatus.value = 'loggedIn'
-}
+const isLoggedIn = () => !!userStore.user?.id
 
 watch(group, () => {
   drawer.value = true
-  checkStatus()
 })
 
 onMounted(() => {
-  if (userStatus.value === 'loggedIn') {
+  if (isLoggedIn()) {
     drawer.value = true
     toggleDrawer()
   } else {
     drawer.value = false
   }
-
-  checkStatus()
 })
 </script>
 
@@ -68,8 +59,8 @@ onMounted(() => {
       @click="onClick"
     ></v-btn>
 
-    <!-- Show the toggle drawer icon only if the user is logged in -->
-    <v-btn v-if="route.path !== '/'" @click="toggleDrawer">
+    <!-- Show only if user is logged in -->
+    <v-btn v-if="route.path !== '/' && isLoggedIn()" @click="toggleDrawer">
       <v-app-bar-nav-icon class="fill-height" variant="text"></v-app-bar-nav-icon>
     </v-btn>
   </v-app-bar>
