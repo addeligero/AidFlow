@@ -2,7 +2,8 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import { useTheme } from 'vuetify' // Import useTheme
+import { useTheme } from 'vuetify'
+
 import supabase from '@/lib/Supabase'
 import Header from '@/components/HeaderSection.vue'
 

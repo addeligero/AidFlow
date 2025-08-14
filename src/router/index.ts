@@ -4,6 +4,7 @@ import Register from '@/views/Auth/RegisterForm.vue'
 import Dashboard from '@/views/ClientDashbaord.vue'
 import supabase from '@/lib/Supabase'
 import AdminDashboard from '@/views/AdminDashboard.vue'
+import ProviderApplication from '@/views/Auth/ProviderApplication.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -28,6 +29,12 @@ const router = createRouter({
       path: '/admin',
       name: 'AdminDashboard',
       component: AdminDashboard,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/application',
+      name: 'Provider Application',
+      component: ProviderApplication,
       meta: { requiresAuth: true },
     },
   ],

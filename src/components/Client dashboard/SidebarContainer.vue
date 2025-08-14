@@ -1,8 +1,16 @@
 <script setup lang="ts">
 import { userCounterStore } from '@/stores/users'
 import supabase from '@/lib/Supabase'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
 
+const route = useRoute()
+const currentSection = computed(() => {
+  if (route.path === '/dashboard') return 'home'
+  if (route.path === '/about') return 'about'
+  // Add more as needed
+  return ''
+})
 const userStore = userCounterStore()
 const showAvatarDialog = ref(false)
 const selectedImage = ref('https://randomuser.me/api/portraits/men/78.jpg')
@@ -54,7 +62,6 @@ const handleFileUpload = async (event: Event) => {
   const file = target.files?.[0]
   if (!file) return
 
-  // Get user ID first
   const { data: userData } = await supabase.auth.getUser()
   const userId = userData.user?.id
   if (!userId) {
@@ -62,7 +69,7 @@ const handleFileUpload = async (event: Event) => {
     return
   }
 
-  // Generate a safe file path (store in user folder)
+  // mo Generate ug safe file path (store in user folder)
   const fileExt = file.name.split('.').pop()
   const fileName = `${userId}-${Date.now()}.${fileExt}`
   const filePath = `client-profile/${fileName}`
@@ -157,7 +164,15 @@ const handleFileUpload = async (event: Event) => {
           prepend-icon="mdi-view-dashboard"
           title="Home"
           value="home"
+          :active="currentSection === 'home'"
           @click="() => navigate('dashboard')"
+        />
+        <v-list-item
+          prepend-icon="mdi-forum"
+          title="About"
+          value="about"
+          :active="currentSection === 'about'"
+          @click="() => navigate('about')"
         />
         <v-list-item prepend-icon="mdi-forum" title="About" value="about" />
       </v-list>
