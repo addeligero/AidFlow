@@ -1,9 +1,6 @@
 <script setup>
 import ClientLayout from '@/layouts/ClientLayout.vue'
-import { ref, reactive, watch } from 'vue'
-import { useUserStore } from '@/stores/users' // <-- import your Pinia store
-
-const userStore = useUserStore() // <-- access existing user data
+import { ref, reactive } from 'vue'
 
 const officeAddresses = [
   { address: '123 Main St, City Center' },
@@ -19,19 +16,6 @@ const form = reactive({
   agencyEmail: '',
   agencyNumber: '',
 })
-
-// Populate form when user is already in store
-watch(
-  () => userStore.user,
-  (newUser) => {
-    if (newUser) {
-      form.agencyName = newUser.agencyName || ''
-      form.contactPerson = newUser.name || ''
-      form.agencyEmail = newUser.email || ''
-    }
-  },
-  { immediate: true },
-)
 
 const valid = ref(false)
 const formRef = ref(null)

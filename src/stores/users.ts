@@ -4,14 +4,14 @@ import supabase from '@/lib/Supabase'
 import type { User } from '@supabase/supabase-js'
 
 export const useUserStore = defineStore('user', () => {
-  const user = ref<User | null>(null) // Supabase auth user
-  const isUserLoaded = ref(false) // Marks if user info is loaded
-  const isImageUploading = ref(false) // True while new profile image is uploading
-  const userProfileImg = ref<string>('') // Final profile image URL
+  const user = ref<User | null>(null)
+  const isUserLoaded = ref(false)
+  const isImageUploading = ref(false)
+  const userProfileImg = ref<string>('')
 
   // Fetch the authenticated user and profile image
   const fetchUser = async () => {
-    if (this.isUserLoaded) return
+    if (isUserLoaded.value) return
 
     const {
       data: { user: authUser },
@@ -45,12 +45,10 @@ export const useUserStore = defineStore('user', () => {
     isUserLoaded.value = true
   }
 
-  // Call this when starting an image upload
   const startImageUpload = () => {
     isImageUploading.value = true
   }
 
-  // Call this when upload finishes successfully
   const finishImageUpload = (newImageUrl: string) => {
     userProfileImg.value = newImageUrl
     isImageUploading.value = false
