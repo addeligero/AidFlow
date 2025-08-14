@@ -2,10 +2,10 @@
 import { useTheme, useDisplay } from 'vuetify'
 import { onMounted, ref } from 'vue'
 import AdminCard from '@/components/Admin/AdminCard.vue'
-import { userCounterStore } from '@/stores/users'
+import { useUserStore } from '@/stores/users'
 import supabase from '@/lib/Supabase'
 
-const user = userCounterStore()
+const user = useUserStore()
 const props = defineProps<{ userAvatar?: string }>()
 const localAvatar = ref(props.userAvatar)
 const drawer = ref(true)

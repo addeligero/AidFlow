@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import Register from '@/views/Auth/RegisterForm.vue'
-import Dashboard from '@/views/ClientDashbaord.vue'
+import Dashboard from '@/views/Client/ClientDashbaord.vue'
 import supabase from '@/lib/Supabase'
 import AdminDashboard from '@/views/AdminDashboard.vue'
 import ProviderApplication from '@/views/Auth/ProviderApplication.vue'

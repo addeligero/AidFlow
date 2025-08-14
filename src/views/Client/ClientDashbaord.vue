@@ -1,0 +1,20 @@
+<template>
+  <ClientLayout>
+    <v-row justify="center">
+      <v-col cols="12" md="6">
+        <Carousel />
+      </v-col>
+      <v-col cols="12" md="6">
+        <hr />
+        <h3>Services</h3>
+        <IconSection />
+      </v-col>
+    </v-row>
+  </ClientLayout>
+</template>
+
+<script setup lang="ts">
+import ClientLayout from '@/layouts/ClientLayout.vue'
+import Carousel from '@/components/Client dashboard/CarouselSection.vue'
+import IconSection from '@/components/Client dashboard/IconSection.vue'
+</script>

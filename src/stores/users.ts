@@ -3,13 +3,15 @@ import { defineStore } from 'pinia'
 import supabase from '@/lib/Supabase'
 import type { User } from '@supabase/supabase-js'
 
-export const userCounterStore = defineStore('users', () => {
-  const userImg: string = 'https://randomuser.me/api/portraits/'
-  const user = ref<User[]>([])
-  const isUserLoaded = ref(false)
+export const useUserStore = defineStore('user', () => {
+  const user = ref<User | null>(null) // Supabase auth user
+  const isUserLoaded = ref(false) // Marks if user info is loaded
+  const isImageUploading = ref(false) // True while new profile image is uploading
+  const userProfileImg = ref<string>('') // Final profile image URL
 
-  const fetchUsers = async () => {
-    console.log('[fetchUsers] called')
+  // Fetch the authenticated user and profile image
+  const fetchUser = async () => {
+    if (this.isUserLoaded) return
 
     const {
       data: { user: authUser },
@@ -22,35 +24,55 @@ export const userCounterStore = defineStore('users', () => {
       return
     }
 
-    console.log('[fetchUsers] metadata:', authUser.user_metadata)
+    user.value = authUser
 
-    user.value = [authUser]
+    const { data, error } = await supabase
+      .from('users')
+      .select('img')
+      .eq('user_id', authUser.id)
+      .single()
+
+    if (!error && data?.img) {
+      userProfileImg.value = data.img
+    } else {
+      // Fallback avatar from metadata
+      const metadata = authUser.user_metadata || {}
+      const gender = metadata.gender === 'female' ? 'women' : 'men'
+      const id = metadata.avatar_id || '1'
+      userProfileImg.value = `https://randomuser.me/api/portraits/${gender}/${id}.jpg`
+    }
+
     isUserLoaded.value = true
   }
 
+  // Call this when starting an image upload
+  const startImageUpload = () => {
+    isImageUploading.value = true
+  }
+
+  // Call this when upload finishes successfully
+  const finishImageUpload = (newImageUrl: string) => {
+    userProfileImg.value = newImageUrl
+    isImageUploading.value = false
+  }
+
   const userFullName = computed(() => {
-    const metadata = user.value[0]?.user_metadata || {}
-    return metadata.full_name || 'User'
+    return user.value?.user_metadata?.full_name || 'User'
   })
+
   const userEmail = computed(() => {
-    return user.value[0]?.email || 'No email'
-  })
-
-  const userAvatar = computed(() => {
-    const metadata = user.value[0]?.user_metadata || {}
-
-    const gender = metadata.gender === 'female' ? 'women' : 'men'
-    const id = metadata.avatar_id || '1'
-    return `${userImg}${gender}/${id}.jpg`
+    return user.value?.email || 'No email'
   })
 
   return {
     user,
-    fetchUsers,
-    userFullName,
     isUserLoaded,
+    isImageUploading,
+    userProfileImg,
+    fetchUser,
+    startImageUpload,
+    finishImageUpload,
+    userFullName,
     userEmail,
-    userImg,
-    userAvatar,
   }
 })

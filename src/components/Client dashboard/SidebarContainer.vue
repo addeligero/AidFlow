@@ -1,122 +1,108 @@
 <script setup lang="ts">
-import { userCounterStore } from '@/stores/users'
+import { useUserStore } from '@/stores/users'
 import supabase from '@/lib/Supabase'
-import { ref, onMounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref } from 'vue'
 
-const route = useRoute()
-const currentSection = computed(() => {
-  if (route.path === '/dashboard') return 'home'
-  if (route.path === '/about') return 'about'
-  // Add more as needed
-  return ''
-})
-const userStore = userCounterStore()
-const showAvatarDialog = ref(false)
-const selectedImage = ref('https://randomuser.me/api/portraits/men/78.jpg')
-const fileInput = ref<HTMLInputElement | null>(null)
-const triggerFileInput = () => {
-  ;(fileInput.value as HTMLInputElement)?.click()
-}
-
-//chech the image idol
-onMounted(async () => {
-  const { data: userData } = await supabase.auth.getUser()
-  const userId = userData.user?.id
-  if (!userId) return
-
-  const { data, error } = await supabase.from('users').select('img').eq('user_id', userId).single()
-
-  if (error) {
-    console.error('Error fetching user image:', error.message)
-    return
-  }
-
-  if (data?.img) {
-    selectedImage.value = data.img
-  }
-})
+const userStore = useUserStore()
 
 const props = defineProps({
   modelValue: Boolean,
 })
 const emit = defineEmits(['update:modelValue'])
 
+const showAvatarDialog = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
+const isUploading = ref(false)
+
+const triggerFileInput = () => {
+  fileInput.value?.click()
+}
+
 const logout = async () => {
   const { error } = await supabase.auth.signOut()
-
   if (error) {
     console.error('Logout failed:', error.message)
   } else {
     window.location.href = '/'
   }
 }
+
 const navigate = (route: string) => {
   emit('update:modelValue', false)
   window.location.href = `/${route}`
 }
 
-// Handle file upload
+// Upload and update store
 const handleFileUpload = async (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (!file) return
 
-  const { data: userData } = await supabase.auth.getUser()
-  const userId = userData.user?.id
-  if (!userId) {
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser()
+
+  if (!authUser) {
     console.error('No authenticated user found')
     return
   }
 
-  // mo Generate ug safe file path (store in user folder)
+  isUploading.value = true // Start loading state
+
   const fileExt = file.name.split('.').pop()
-  const fileName = `${userId}-${Date.now()}.${fileExt}`
+  const fileName = `${authUser.id}-${Date.now()}.${fileExt}`
   const filePath = `client-profile/${fileName}`
 
-  // Upload to Supabase Storage
+  // Upload to storage
   const { error: uploadError } = await supabase.storage
     .from('avatars')
     .upload(filePath, file, { upsert: true })
 
   if (uploadError) {
     console.error('Upload failed:', uploadError.message)
+    isUploading.value = false
     return
   }
 
   // Get public URL
   const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
-
   const publicUrl = publicUrlData.publicUrl
 
-  // Save URL to the users table
+  // Save URL in users table
   const { error: updateError } = await supabase
     .from('users')
     .update({ img: publicUrl })
-    .eq('user_id', userId)
+    .eq('user_id', authUser.id)
 
   if (updateError) {
     console.error('Failed to update user image:', updateError.message)
+    isUploading.value = false
     return
   }
 
-  // Update UI
-  selectedImage.value = publicUrl
+  // Update Pinia store immediately
+  userStore.userProfileImg = publicUrl
+
+  // End loading state
+  isUploading.value = false
 }
 </script>
+
 <template>
-  <!-- Dialog -->
+  <!-- Dialog for Avatar -->
   <v-dialog v-model="showAvatarDialog" max-width="400">
     <v-card>
       <v-card-title class="text-h6">Update Profile Photo</v-card-title>
-
       <v-card-text class="d-flex flex-column align-center">
         <v-avatar size="150" class="mb-4">
-          <v-img :src="selectedImage" cover />
+          <template v-if="isUploading">
+            <v-progress-circular indeterminate color="primary" size="48" />
+          </template>
+          <template v-else>
+            <v-img :src="userStore.userProfileImg" cover />
+          </template>
         </v-avatar>
-
-        <v-btn color="primary" @click="triggerFileInput"> Choose New Photo </v-btn>
-
+        <v-btn color="primary" @click="triggerFileInput">Choose New Photo</v-btn>
         <input
           ref="fileInput"
           type="file"
@@ -125,7 +111,6 @@ const handleFileUpload = async (event: Event) => {
           @change="handleFileUpload"
         />
       </v-card-text>
-
       <v-card-actions>
         <v-spacer />
         <v-btn text @click="showAvatarDialog = false">Close</v-btn>
@@ -133,6 +118,7 @@ const handleFileUpload = async (event: Event) => {
     </v-card>
   </v-dialog>
 
+  <!-- Sidebar -->
   <v-navigation-drawer
     :model-value="props.modelValue"
     @update:model-value="emit('update:modelValue', $event)"
@@ -140,15 +126,18 @@ const handleFileUpload = async (event: Event) => {
     class="drawer-root d-flex flex-column"
   >
     <div class="drawer-content">
+      <!-- User Info -->
       <v-list-item
         v-if="userStore.isUserLoaded"
-        :prepend-avatar="
-          selectedImage || userStore.userImg || 'https://randomuser.me/api/portraits/men/78.jpg'
-        "
+        :prepend-avatar="isUploading ? '' : userStore.userProfileImg"
         :subtitle="userStore.userEmail"
         :title="userStore.userFullName"
         @click="showAvatarDialog = true"
-      />
+      >
+        <template v-if="isUploading" #prepend>
+          <v-progress-circular indeterminate color="primary" size="24" />
+        </template>
+      </v-list-item>
 
       <v-list-item
         v-else
@@ -157,27 +146,25 @@ const handleFileUpload = async (event: Event) => {
         @click="showAvatarDialog = true"
       />
 
-      <v-divider></v-divider>
+      <v-divider />
 
+      <!-- Navigation -->
       <v-list density="compact" nav>
         <v-list-item
           prepend-icon="mdi-view-dashboard"
           title="Home"
-          value="home"
-          :active="currentSection === 'home'"
           @click="() => navigate('dashboard')"
         />
+        <v-list-item prepend-icon="mdi-forum" title="About" />
         <v-list-item
           prepend-icon="mdi-forum"
-          title="About"
-          value="about"
-          :active="currentSection === 'about'"
-          @click="() => navigate('about')"
+          title="Be a provider"
+          @click="() => navigate('application')"
         />
-        <v-list-item prepend-icon="mdi-forum" title="About" value="about" />
       </v-list>
     </div>
 
+    <!-- Fixed Logout Button -->
     <v-btn
       block
       color="error"
