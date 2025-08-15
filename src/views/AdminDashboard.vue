@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useTheme, useDisplay } from 'vuetify'
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import AdminCard from '@/components/Admin/AdminCard.vue'
 import { useUserStore } from '@/stores/users'
 import supabase from '@/lib/Supabase'
@@ -26,13 +26,6 @@ function onClick() {
 const showAvatarDialog = ref(false)
 const selectedImage = ref(user.userProfileImg || 'https://randomuser.me/api/portraits/women/85.jpg')
 const fileInputRef = ref<HTMLInputElement | null>(null)
-
-onMounted(async () => {
-  if ((user.isUserLoaded = false)) {
-    await user.fetchUser()
-    selectedImage.value = user.userProfileImg
-  }
-})
 
 const handleFileUpload = async (event: Event) => {
   const target = event.target as HTMLInputElement
