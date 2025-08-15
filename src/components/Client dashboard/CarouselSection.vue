@@ -1,30 +1,40 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { providersStore } from '@/stores/providers'
 
-import Philhealth from '@/assets/img/logo/philhealth.jpg'
-import DOH from '@/assets/img/logo/doh.png'
-import DSWD from '@/assets/img/logo/DSWD.SVG.png'
-import MALASAKIT from '@/assets/img/logo/malasakit.jpg'
-import pcso from '@/assets/img/logo/pcso.jpg'
-
+const store = providersStore()
 const model = ref(null)
-const images = [Philhealth, DOH, DSWD, MALASAKIT, pcso]
+
+onMounted(() => {
+  store.fetchProviders()
+  console.log('Providers fetched:', store.providers)
+})
+watch(
+  () => store.providers,
+  (newVal) => {
+    console.log('Providers updated:', newVal)
+  },
+  { deep: true },
+)
 </script>
 
 <template>
   <v-sheet class="mx-auto" max-width="800" color="transparent">
     <v-slide-group v-model="model" selected-class="bg-success">
-      <v-slide-group-item v-for="(img, i) in images" :key="i" v-slot="{ toggle, selectedClass }">
+      <v-slide-group-item
+        v-for="(provider, i) in store.providers"
+        :key="i"
+        v-slot="{ toggle, selectedClass }"
+      >
         <v-card :class="['ma-4', selectedClass]" height="150" width="250" @click="toggle">
           <div class="d-flex fill-height align-center justify-center">
             <v-scale-transition>
               <v-card color="transparent">
                 <div class="d-flex align-center">
-                  <v-img :src="img" height="90" width="90" cover class="ma-3"></v-img>
-
+                  <v-img :src="provider.logo" height="90" width="90" cover class="ma-3" />
                   <div>
-                    <v-card-title>Top western road trips</v-card-title>
-                    <v-card-subtitle>1,000 miles of wonder</v-card-subtitle>
+                    <v-card-title>{{ provider.agencyName }}</v-card-title>
+                    <v-card-subtitle>Provider</v-card-subtitle>
                   </div>
                 </div>
 

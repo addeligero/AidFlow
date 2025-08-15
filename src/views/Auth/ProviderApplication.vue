@@ -2,13 +2,6 @@
 import ClientLayout from '@/layouts/ClientLayout.vue'
 import { ref, reactive } from 'vue'
 
-const officeAddresses = [
-  { address: '123 Main St, City Center' },
-  { address: '456 Elm Ave, Uptown' },
-  { address: '789 Oak Blvd, Downtown' },
-  { address: '101 Maple Rd, Suburbia' },
-]
-
 const form = reactive({
   agencyName: '',
   officeAddress: '',
@@ -19,15 +12,36 @@ const form = reactive({
 
 const valid = ref(false)
 const formRef = ref(null)
+const loading = ref(false)
 
 const rules = {
   required: (v) => !!v || 'This field is required',
   email: (v) => /.+@.+\..+/.test(v) || 'E-mail must be valid',
 }
 
-function submitForm() {
+async function submitForm() {
   if (formRef.value?.validate()) {
-    alert('Application submitted!')
+    loading.value = true
+    const { error } = await supabase.from('agency_applications').insert([
+      {
+        agency_name: form.agencyName,
+        office_address: form.officeAddress,
+        contact_person: form.contactPerson,
+        agency_email: form.agencyEmail,
+        agency_number: form.agencyNumber,
+        status: 'pending',
+      },
+    ])
+
+    loading.value = false
+
+    if (error) {
+      console.error(error)
+      alert('Error submitting application. Please try again.')
+    } else {
+      alert('Application submitted! Awaiting admin approval.')
+      Object.keys(form).forEach((key) => (form[key] = '')) // Reset form
+    }
   }
 }
 </script>
@@ -41,8 +55,6 @@ function submitForm() {
         </v-card-title>
 
         <v-card-text>
-          <!-- Show loading state until user data is fetched -->
-
           <v-form @submit.prevent="submitForm" ref="formRef" v-model="valid">
             <v-text-field
               v-model="form.agencyName"
@@ -50,21 +62,21 @@ function submitForm() {
               :rules="[rules.required]"
               prepend-inner-icon="mdi-domain"
             />
-            <v-select
+
+            <v-text-field
               v-model="form.officeAddress"
-              :items="officeAddresses"
               label="Office Address"
               :rules="[rules.required]"
               prepend-inner-icon="mdi-map-marker"
-              item-title="address"
-              item-value="address"
             />
+
             <v-text-field
               v-model="form.contactPerson"
               label="Contact Person"
               :rules="[rules.required]"
               prepend-inner-icon="mdi-account"
             />
+
             <v-text-field
               v-model="form.agencyEmail"
               label="Agency Email"
@@ -72,14 +84,23 @@ function submitForm() {
               prepend-inner-icon="mdi-email"
               type="email"
             />
+
             <v-text-field
               v-model="form.agencyNumber"
-              label="Agency Number"
+              label="Agency Contact Number"
               :rules="[rules.required]"
               prepend-inner-icon="mdi-phone"
               type="tel"
             />
-            <v-btn type="submit" color="primary" class="mt-4" block :disabled="!valid">
+
+            <v-btn
+              type="submit"
+              color="primary"
+              class="mt-4"
+              block
+              :disabled="!valid || loading"
+              :loading="loading"
+            >
               Submit Application
             </v-btn>
           </v-form>

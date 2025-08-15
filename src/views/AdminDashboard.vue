@@ -84,7 +84,6 @@ const handleFileUpload = async (event: Event) => {
   <v-card style="height: 100vh">
     <v-layout style="height: 100%">
       <v-app-bar flat>
-        <!-- Show hamburger only on md and down -->
         <v-app-bar-nav-icon v-if="mdAndDown" @click="drawer = !drawer" />
         <v-toolbar-title><h4>Admin</h4></v-toolbar-title>
 
