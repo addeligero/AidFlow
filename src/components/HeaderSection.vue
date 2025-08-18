@@ -36,10 +36,13 @@ const logoTextColor = computed(() =>
 <template>
   <v-app-bar density="comfortable" flat :class="appBarClasses" elevate-on-scroll>
     <div class="d-flex align-center" style="gap: 8px">
-      <v-avatar size="34" class="af-logo-bg">
-        <v-icon color="primary">mdi-lifebuoy</v-icon>
-      </v-avatar>
-      <h3 class="ma-0 font-weight-medium app-title" :class="logoTextColor">AidFlow</h3>
+      <img
+        src="@/assets/img/logo.png"
+        alt="AidFlow Logo"
+        class="mr-2"
+        style="width: 32px; height: 32px"
+      />
+      <span class="text-h6 font-weight-bold" :class="logoTextColor"> AidFlow </span>
     </div>
 
     <v-spacer />

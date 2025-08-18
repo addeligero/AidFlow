@@ -102,8 +102,9 @@ watch(model, () => firstInteract())
         :key="i"
         v-slot="{ toggle, selected }"
       >
+        <!--remove the toggle() para mawala ang duplicate-->
         <v-card
-          class="provider-card mx-3 my-4 border-lg"
+          class="provider-card mx-3 my-4 border-sm"
           :elevation="selected ? 8 : 2"
           rounded="lg"
           @click="(toggle(), firstInteract())"
