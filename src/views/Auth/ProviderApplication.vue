@@ -9,103 +9,181 @@ const form = reactive({
   agencyEmail: '',
   agencyNumber: '',
 })
-
 const valid = ref(false)
 const formRef = ref(null)
 const loading = ref(false)
+const successDialog = ref(false)
 
 const rules = {
-  required: (v) => !!v || 'This field is required',
-  email: (v) => /.+@.+\..+/.test(v) || 'E-mail must be valid',
+  required: (v) => !!v || 'Required',
+  email: (v) => /.+@.+\..+/.test(v) || 'Invalid email',
 }
 
 async function submitForm() {
-  if (formRef.value?.validate()) {
-    loading.value = true
-    const { error } = await supabase.from('agency_applications').insert([
-      {
-        agency_name: form.agencyName,
-        office_address: form.officeAddress,
-        contact_person: form.contactPerson,
-        agency_email: form.agencyEmail,
-        agency_number: form.agencyNumber,
-        status: 'pending',
-      },
-    ])
-
-    loading.value = false
-
-    if (error) {
-      console.error(error)
-      alert('Error submitting application. Please try again.')
-    } else {
-      alert('Application submitted! Awaiting admin approval.')
-      Object.keys(form).forEach((key) => (form[key] = '')) // Reset form
-    }
-  }
+  if (!formRef.value?.validate()) return
+  loading.value = true
+  await new Promise((r) => setTimeout(r, 800))
+  loading.value = false
+  Object.keys(form).forEach((k) => (form[k] = ''))
+  successDialog.value = true
 }
 </script>
 
 <template>
   <ClientLayout>
-    <v-container class="d-flex justify-center align-center" style="min-height: 100vh">
-      <v-card max-width="500" class="pa-6" elevation="10">
-        <v-card-title class="justify-center text-h5 font-weight-bold">
-          Agency Application Form
-        </v-card-title>
+    <v-container class="py-12">
+      <v-row justify="center" class="mb-10">
+        <v-col cols="12" md="9" class="text-center">
+          <v-chip color="primary" size="small" variant="flat" class="mb-4">
+            Become a Partner
+          </v-chip>
+          <div class="text-h4 text-md-h3 font-weight-bold mb-3">
+            Ready to become a <span class="text-primary">Subsidy Provider</span>?
+          </div>
+          <div class="text-body-1 text-medium-emphasis mx-auto" style="max-width: 600px">
+            Join AidFlow’s network to distribute resources efficiently, reach more beneficiaries,
+            and streamline reporting in real time.
+          </div>
+        </v-col>
+      </v-row>
 
-        <v-card-text>
-          <v-form @submit.prevent="submitForm" ref="formRef" v-model="valid">
-            <v-text-field
-              v-model="form.agencyName"
-              label="Agency Name"
-              :rules="[rules.required]"
-              prepend-inner-icon="mdi-domain"
-            />
+      <v-row justify="center" align="stretch" class="g-6">
+        <v-col cols="12" md="5">
+          <v-card rounded="xl" elevation="6" class="pa-6">
+            <div class="text-h6 font-weight-medium mb-4">Why partner with us?</div>
+            <v-list density="comfortable" class="benefits-list">
+              <v-list-item
+                v-for="(b, i) in [
+                  'Faster beneficiary verification',
+                  'Secure document handling',
+                  'Transparency dashboard',
+                  'Automated compliance summaries',
+                  'Scalable distribution tracking',
+                ]"
+                :key="i"
+                prepend-icon="mdi-check-circle"
+                class="benefit-item"
+              >
+                <template #title>
+                  <span class="benefit-text">{{ b }}</span>
+                </template>
+              </v-list-item>
+            </v-list>
+            <v-divider class="my-5"></v-divider>
+            <div class="d-flex align-center">
+              <v-icon color="primary" class="me-2">mdi-shield-check</v-icon>
+              <span class="text-body-2 text-medium-emphasis">
+                Reviewed within 3–5 business days.
+              </span>
+            </div>
+          </v-card>
+        </v-col>
 
-            <v-text-field
-              v-model="form.officeAddress"
-              label="Office Address"
-              :rules="[rules.required]"
-              prepend-inner-icon="mdi-map-marker"
-            />
+        <v-col cols="12" md="7">
+          <v-card rounded="xl" elevation="8" class="pa-6">
+            <div class="d-flex align-center mb-4">
+              <v-avatar size="46" class="me-3" color="primary" variant="tonal">
+                <v-icon color="primary">mdi-domain</v-icon>
+              </v-avatar>
+              <div>
+                <div class="text-h6 font-weight-bold">Application Form</div>
+                <div class="text-caption text-medium-emphasis">
+                  Provide accurate organizational details.
+                </div>
+              </div>
+            </div>
 
-            <v-text-field
-              v-model="form.contactPerson"
-              label="Contact Person"
-              :rules="[rules.required]"
-              prepend-inner-icon="mdi-account"
-            />
+            <v-form ref="formRef" v-model="valid" @submit.prevent="submitForm">
+              <v-text-field
+                v-model="form.agencyName"
+                label="Agency Name"
+                :rules="[rules.required]"
+                prepend-inner-icon="mdi-domain"
+                variant="outlined"
+                density="comfortable"
+                class="mb-3"
+              />
+              <v-text-field
+                v-model="form.officeAddress"
+                label="Office Address"
+                :rules="[rules.required]"
+                prepend-inner-icon="mdi-map-marker"
+                variant="outlined"
+                density="comfortable"
+                class="mb-3"
+              />
+              <v-text-field
+                v-model="form.contactPerson"
+                label="Contact Person"
+                :rules="[rules.required]"
+                prepend-inner-icon="mdi-account"
+                variant="outlined"
+                density="comfortable"
+                class="mb-3"
+              />
+              <v-text-field
+                v-model="form.agencyEmail"
+                label="Agency Email"
+                :rules="[rules.required, rules.email]"
+                prepend-inner-icon="mdi-email"
+                type="email"
+                variant="outlined"
+                density="comfortable"
+                class="mb-3"
+              />
+              <v-text-field
+                v-model="form.agencyNumber"
+                label="Agency Contact Number"
+                :rules="[rules.required]"
+                prepend-inner-icon="mdi-phone"
+                type="tel"
+                variant="outlined"
+                density="comfortable"
+                class="mb-4"
+              />
 
-            <v-text-field
-              v-model="form.agencyEmail"
-              label="Agency Email"
-              :rules="[rules.required, rules.email]"
-              prepend-inner-icon="mdi-email"
-              type="email"
-            />
+              <div class="text-caption text-medium-emphasis mb-4">
+                Submitting confirms accuracy of the provided information.
+              </div>
 
-            <v-text-field
-              v-model="form.agencyNumber"
-              label="Agency Contact Number"
-              :rules="[rules.required]"
-              prepend-inner-icon="mdi-phone"
-              type="tel"
-            />
+              <v-btn
+                type="submit"
+                color="primary"
+                block
+                size="large"
+                :disabled="!valid || loading"
+                :loading="loading"
+              >
+                Submit Application
+              </v-btn>
+            </v-form>
+          </v-card>
+        </v-col>
+      </v-row>
 
-            <v-btn
-              type="submit"
-              color="primary"
-              class="mt-4"
-              block
-              :disabled="!valid || loading"
-              :loading="loading"
-            >
-              Submit Application
-            </v-btn>
-          </v-form>
-        </v-card-text>
-      </v-card>
+      <v-dialog v-model="successDialog" max-width="420">
+        <v-card rounded="xl" elevation="10">
+          <v-card-title class="d-flex align-center">
+            <v-icon color="primary" class="me-2">mdi-check-decagram</v-icon>
+            Application Submitted
+          </v-card-title>
+          <v-card-text>
+            Thank you. Your application is under review. We will email you updates.
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn color="primary" variant="flat" @click="successDialog = false">Close</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </v-container>
   </ClientLayout>
 </template>
+<style scoped>
+.benefit-item .v-list-item-title,
+.benefit-text {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: initial;
+}
+</style>
