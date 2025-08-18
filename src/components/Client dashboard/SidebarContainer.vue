@@ -31,7 +31,7 @@ const logout = async () => {
   if (error) {
     console.error('Logout failed:', error.message)
   } else {
-    userStore.$reset()
+    userStore.reset()
     window.location.href = '/'
   }
 }

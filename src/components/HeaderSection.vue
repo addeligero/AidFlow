@@ -5,7 +5,9 @@ import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/users'
 
 const route = useRoute()
-const { toggleDrawer } = defineProps<{ toggleDrawer: () => void }>()
+const { toggleDrawer } = defineProps<{
+  toggleDrawer?: () => void
+}>()
 
 const theme = useTheme()
 const savedTheme = localStorage.getItem('theme')
@@ -63,11 +65,11 @@ const logoTextColor = computed(() =>
     <v-divider v-if="route.path !== '/' && isLoggedIn()" vertical class="mx-3 opacity-divider" />
 
     <v-btn
-      v-if="route.path !== '/' && isLoggedIn()"
+      v-if="route.path !== '/' && isLoggedIn() && toggleDrawer"
       variant="text"
       class="drawer-btn"
       :icon="true"
-      @click="toggleDrawer"
+      @click="toggleDrawer?.()"
     >
       <v-icon>mdi-menu</v-icon>
     </v-btn>

@@ -69,6 +69,13 @@ export const useUserStore = defineStore(
       return user.value?.id || 'No email'
     })
 
+    const reset = () => {
+      user.value = null
+      isUserLoaded.value = false
+      isImageUploading.value = false
+      userProfileImg.value = ''
+    }
+
     return {
       user,
       isUserLoaded,
@@ -80,6 +87,7 @@ export const useUserStore = defineStore(
       userFullName,
       userEmail,
       user_id,
+      reset,
     }
   },
   {

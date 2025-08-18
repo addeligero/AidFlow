@@ -14,11 +14,10 @@ onMounted(() => {
   if (store.providers.length === 0) {
     store.fetchProviders()
   }
-  // Auto-hide hint after 6s
-  setTimeout(() => (showHint.value = false), 6000)
+
+  setTimeout(() => (showHint.value = false), 8000)
 })
 
-// Hide hint on first user interaction
 function firstInteract() {
   if (showHint.value) showHint.value = false
 }
@@ -93,19 +92,13 @@ watch(model, () => firstInteract())
       class="pt-2 pb-4"
       selected-class="selected-chip"
       center-active
-      show-arrows="false"
       @mousedown="firstInteract"
       @touchstart="firstInteract"
     >
-      <v-slide-group-item
-        v-for="(provider, i) in store.providers"
-        :key="i"
-        v-slot="{ toggle, selected }"
-      >
+      <v-slide-group-item v-for="(provider, i) in store.providers" :key="i" v-slot="{ toggle }">
         <!--remove the toggle() para mawala ang duplicate-->
         <v-card
           class="provider-card mx-3 my-4 border-sm"
-          :elevation="selected ? 8 : 2"
           rounded="lg"
           @click="(toggle(), firstInteract())"
         >
@@ -142,7 +135,6 @@ watch(model, () => firstInteract())
             </v-chip>
           </div>
           <v-overlay
-            :model-value="selected"
             contained
             scrim="rgba(0,0,0,0.25)"
             class="d-flex align-center justify-center selection-overlay"
