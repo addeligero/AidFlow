@@ -1,6 +1,14 @@
-<script setup>
+<script setup lang="ts">
 import ClientLayout from '@/layouts/ClientLayout.vue'
 import { ref, reactive } from 'vue'
+import supabase from '@/lib/Supabase'
+
+// ✅ Import Pinia store properly
+import { useUserStore } from '@/stores/users'
+import { storeToRefs } from 'pinia'
+
+const userStore = useUserStore()
+const { user_id } = storeToRefs(userStore) // 👈 makes user_id reactive
 
 const form = reactive({
   agencyName: '',
@@ -9,10 +17,12 @@ const form = reactive({
   agencyEmail: '',
   agencyNumber: '',
 })
+
 const valid = ref(false)
 const formRef = ref(null)
 const loading = ref(false)
 const successDialog = ref(false)
+const errorMsg = ref<string | null>(null)
 
 const rules = {
   required: (v) => !!v || 'Required',
@@ -20,12 +30,31 @@ const rules = {
 }
 
 async function submitForm() {
+  errorMsg.value = null
   if (!formRef.value?.validate()) return
   loading.value = true
-  await new Promise((r) => setTimeout(r, 800))
-  loading.value = false
-  Object.keys(form).forEach((k) => (form[k] = ''))
-  successDialog.value = true
+
+  try {
+    const payload = {
+      agency_name: form.agencyName.trim(),
+      office_address: form.officeAddress.trim(),
+      contact_person: form.contactPerson.trim(),
+      agency_email: form.agencyEmail.trim().toLowerCase(),
+      agency_num: form.agencyNumber.trim(),
+    }
+
+    const { error } = await supabase.from('providers').insert([payload])
+
+    if (error) throw error
+
+    Object.keys(form).forEach((k) => (form[k] = ''))
+    successDialog.value = true
+  } catch (e: any) {
+    console.error(e)
+    errorMsg.value = e.message || 'Submission failed.'
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -156,6 +185,16 @@ async function submitForm() {
               >
                 Submit Application
               </v-btn>
+              <v-alert
+                v-if="errorMsg"
+                type="error"
+                variant="tonal"
+                density="compact"
+                class="mb-4"
+                :text="errorMsg"
+                closable
+                @click:close="errorMsg = null"
+              />
             </v-form>
           </v-card>
         </v-col>
