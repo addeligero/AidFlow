@@ -3,12 +3,12 @@ import ClientLayout from '@/layouts/ClientLayout.vue'
 import { ref, reactive } from 'vue'
 import supabase from '@/lib/Supabase'
 
-// ✅ Import Pinia store properly
-import { useUserStore } from '@/stores/users'
-import { storeToRefs } from 'pinia'
-
-const userStore = useUserStore()
-const { user_id } = storeToRefs(userStore) // 👈 makes user_id reactive
+type VFormRef = {
+  validate: () => Promise<{ valid: boolean }>
+  reset: () => void
+  resetValidation: () => void
+}
+const formRef = ref<VFormRef | null>(null)
 
 const form = reactive({
   agencyName: '',
@@ -19,21 +19,22 @@ const form = reactive({
 })
 
 const valid = ref(false)
-const formRef = ref(null)
 const loading = ref(false)
 const successDialog = ref(false)
 const errorMsg = ref<string | null>(null)
 
 const rules = {
-  required: (v) => !!v || 'Required',
-  email: (v) => /.+@.+\..+/.test(v) || 'Invalid email',
+  required: (v: string | null | undefined) => !!v || 'Required',
+  email: (v: string | null | undefined) => /.+@.+\..+/.test(v || '') || 'Invalid email',
 }
 
 async function submitForm() {
   errorMsg.value = null
-  if (!formRef.value?.validate()) return
-  loading.value = true
 
+  const validation = await formRef.value?.validate()
+  if (!validation?.valid) return
+
+  loading.value = true
   try {
     const payload = {
       agency_name: form.agencyName.trim(),
@@ -47,7 +48,7 @@ async function submitForm() {
 
     if (error) throw error
 
-    Object.keys(form).forEach((k) => (form[k] = ''))
+    Object.keys(form).forEach((k) => (form[k as keyof typeof form] = ''))
     successDialog.value = true
   } catch (e: any) {
     console.error(e)
