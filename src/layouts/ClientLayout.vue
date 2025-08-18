@@ -18,8 +18,6 @@ onMounted(async () => {
     console.log('Fetching user data...')
     await userStore.fetchUser()
   }
-
-  console.log('laktaw')
 })
 </script>
 
@@ -35,7 +33,7 @@ onMounted(async () => {
   >
     <v-container fluid>
       <slot />
-      <!-- 👈 Slot for injecting page-specific content -->
+      <!--  Slot -->
     </v-container>
   </div>
 </template>

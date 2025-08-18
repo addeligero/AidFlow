@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { useUserStore } from '@/stores/users'
 import supabase from '@/lib/Supabase'
-import { ref } from 'vue'
-import { useRoute } from 'vue-router' // ✅ to check active route
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const userStore = useUserStore()
 
+onMounted(() => {
+  if (!userStore.isUserLoaded) {
+    console.log('Fetching user data...')
+    userStore.fetchUser()
+  }
+})
 const props = defineProps({
   modelValue: Boolean,
 })
@@ -26,7 +32,7 @@ const logout = async () => {
     console.error('Logout failed:', error.message)
   } else {
     userStore.$reset()
-    window.location.href = '/' // Logout should refresh
+    window.location.href = '/'
   }
 }
 

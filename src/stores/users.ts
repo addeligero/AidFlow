@@ -29,6 +29,7 @@ export const useUserStore = defineStore(
       }
 
       user.value = authUser
+      isUserLoaded.value = true
 
       const { data, error } = await supabase
         .from('users')
@@ -38,7 +39,6 @@ export const useUserStore = defineStore(
 
       if (!error && data?.img) {
         userProfileImg.value = data.img
-        isUserLoaded.value = true
       } else {
         // Fallback avatar from metadata
         const metadata = authUser.user_metadata || {}

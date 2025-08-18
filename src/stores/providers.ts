@@ -1,4 +1,3 @@
-// src/stores/providers.ts
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import supabase from '@/lib/Supabase'
@@ -9,7 +8,6 @@ export const providersStore = defineStore('providers', () => {
 
   const fetchProviders = async () => {
     const { data, error } = await supabase.from('providers').select('agency_name, logo')
-    console.log('check', data)
 
     if (error) {
       console.error('Error fetching providers:', error)

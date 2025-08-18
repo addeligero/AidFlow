@@ -6,8 +6,10 @@ const store = providersStore()
 const model = ref(null)
 
 onMounted(() => {
-  store.fetchProviders()
-  console.log('Providers fetched:', store.providers)
+  if (store.providers.length === 0) {
+    console.log('Fetching providers...')
+    store.fetchProviders()
+  }
 })
 watch(
   () => store.providers,
