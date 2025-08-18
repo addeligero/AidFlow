@@ -22,26 +22,28 @@ const vuetify = createVuetify({
     themes: {
       light: {
         colors: {
-          background: '#ffffff',
+          background: '#f8fbff',
           surface: '#ffffff',
-          primary: '#6200ea',
           secondary: '#03dac6',
           error: '#b00020',
           info: '#2196f3',
           success: '#4caf50',
           warning: '#fb8c00',
+          primary: '#3B82F6',
+          surfaceVariant: '#dbeafe',
         },
       },
       dark: {
         colors: {
-          background: '#121212',
-          surface: '#424242',
-          primary: '#bb86fc',
+          background: '#0d1117',
+          surface: '#1e293b',
           secondary: '#03dac6',
           error: '#cf6679',
           info: '#2196f3',
           success: '#4caf50',
           warning: '#fb8c00',
+          primary: '#3B82F6',
+          surfaceVariant: '#1e40af',
         },
       },
     },

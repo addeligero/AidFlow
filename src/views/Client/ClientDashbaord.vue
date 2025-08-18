@@ -2,10 +2,12 @@
   <ClientLayout>
     <v-row justify="center">
       <v-col cols="12" md="6">
+        <br />
         <Carousel />
       </v-col>
       <v-col cols="12" md="6">
         <hr />
+        <br />
         <h3>Services</h3>
         <IconSection />
       </v-col>
