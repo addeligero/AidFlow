@@ -50,11 +50,33 @@ watch(model, () => firstInteract())
 </script>
 
 <template>
-  <div class="provider-slider-wrapper" ref="containerRef" @wheel.passive="onWheel">
-    <div class="edge-fade left" v-if="(model || 0) > 0"></div>
+  <div
+    class="position-relative overflow-hidden px-2"
+    ref="containerRef"
+    @wheel.passive="onWheel"
+    style="max-width: 100%"
+  >
     <div
-      class="edge-fade right"
+      v-if="(model || 0) > 0"
+      class="position-absolute top-0 left-0"
+      style="
+        width: 52px;
+        height: 100%;
+        pointer-events: none;
+        z-index: 4;
+        background: linear-gradient(to right, var(--v-theme-background), rgba(0, 0, 0, 0));
+      "
+    ></div>
+    <div
       v-if="store.providers.length && (model || 0) < store.providers.length - 1"
+      class="position-absolute top-0 right-0"
+      style="
+        width: 52px;
+        height: 100%;
+        pointer-events: none;
+        z-index: 4;
+        background: linear-gradient(to left, var(--v-theme-background), rgba(0, 0, 0, 0));
+      "
     ></div>
 
     <transition name="fade">
@@ -73,7 +95,15 @@ watch(model, () => firstInteract())
       variant="flat"
       size="small"
       density="comfortable"
-      class="nav-btn prev"
+      class="position-absolute"
+      style="
+        top: 50%;
+        left: 4px;
+        transform: translateY(-50%);
+        z-index: 5;
+        background: rgba(0, 0, 0, 0.45);
+        color: #fff;
+      "
       @click="scrollPrev"
       icon="mdi-chevron-left"
     />
@@ -82,7 +112,15 @@ watch(model, () => firstInteract())
       variant="flat"
       size="small"
       density="comfortable"
-      class="nav-btn next"
+      class="position-absolute"
+      style="
+        top: 50%;
+        right: 4px;
+        transform: translateY(-50%);
+        z-index: 5;
+        background: rgba(0, 0, 0, 0.45);
+        color: #fff;
+      "
       @click="scrollNext"
       icon="mdi-chevron-right"
     />
@@ -95,210 +133,87 @@ watch(model, () => firstInteract())
       @mousedown="firstInteract"
       @touchstart="firstInteract"
     >
-      <v-slide-group-item v-for="(provider, i) in store.providers" :key="i" v-slot="{ toggle }">
-        <!--remove the toggle() para mawala ang duplicate-->
-        <v-card
-          class="provider-card mx-3 my-4 border-sm"
-          rounded="lg"
-          @click="(toggle(), firstInteract())"
-        >
-          <div class="d-flex align-center pa-3">
-            <v-avatar size="70" class="me-4 soft-avatar" rounded>
-              <v-img :src="provider.logo" alt="logo" cover />
-            </v-avatar>
-            <div class="text-truncate">
-              <h4 class="mb-1 text-subtitle-1 font-weight-medium provider-name">
-                {{ provider.agencyName }}
-              </h4>
-              <div class="text-caption text-medium-emphasis">Service Provider</div>
-            </div>
-          </div>
-          <v-divider />
-          <div class="d-flex align-center px-3 py-2">
-            <v-btn
-              variant="text"
-              color="primary"
-              size="small"
-              append-icon="mdi-arrow-right"
-              class="ms-n2"
-            >
-              Explore
-            </v-btn>
-            <v-spacer />
-            <v-chip
-              size="x-small"
-              color="primary"
-              variant="flat"
-              class="text-uppercase letter-space"
-            >
-              New
-            </v-chip>
-          </div>
-          <v-overlay
-            contained
-            scrim="rgba(0,0,0,0.25)"
-            class="d-flex align-center justify-center selection-overlay"
+      <v-slide-group-item
+        v-for="(provider, i) in store.providers"
+        :key="i"
+        v-slot="{ toggle, isSelected }"
+      >
+        <v-hover v-slot="{ isHovering, props: hover }">
+          <v-card
+            v-bind="hover"
+            class="mx-3 my-4 border-sm rounded-lg"
+            :elevation="isSelected ? 6 : 2"
+            :variant="isSelected ? 'outlined' : 'flat'"
+            @click="(toggle(), firstInteract())"
+            :style="[
+              {
+                width: '260px',
+                minWidth: '260px',
+                cursor: 'pointer',
+                background:
+                  'linear-gradient(135deg,var(--v-theme-surface) 0%,rgba(255,255,255,0.04) 100%)',
+                transition: 'transform .28s cubic-bezier(.4,0,.2,1), box-shadow .28s',
+                position: 'relative',
+              },
+              isHovering ? { transform: 'translateY(-4px)' } : null,
+              isSelected
+                ? {
+                    outline: '2px solid var(--v-theme-primary)',
+                    outlineOffset: '2px',
+                    borderRadius: '14px',
+                  }
+                : null,
+            ]"
           >
-            <v-icon color="white" size="34">mdi-check-circle</v-icon>
-          </v-overlay>
-        </v-card>
+            <div class="d-flex align-center pa-3">
+              <v-avatar
+                size="70"
+                class="me-4"
+                rounded
+                :style="{
+                  background:
+                    'radial-gradient(circle at 30% 30%,rgba(255,255,255,.35),rgba(255,255,255,.05))',
+                  border: '1px solid rgba(var(--v-border-color),0.1)',
+                  overflow: 'hidden',
+                }"
+              >
+                <v-img :src="provider.logo" alt="logo" cover />
+              </v-avatar>
+              <div class="text-truncate">
+                <h4 class="mb-1 text-subtitle-1 font-weight-medium text-truncate">
+                  {{ provider.agencyName }}
+                </h4>
+                <div class="text-caption text-medium-emphasis">Service Provider</div>
+              </div>
+            </div>
+            <v-divider />
+            <div class="d-flex align-center px-3 py-2">
+              <v-btn
+                variant="text"
+                color="primary"
+                size="small"
+                append-icon="mdi-arrow-right"
+                class="ms-n2"
+              >
+                View Rules
+              </v-btn>
+              <v-spacer />
+              <v-chip size="x-small" color="primary" variant="flat" class="text-uppercase"
+                >View here</v-chip
+              >
+            </div>
+            <v-fade-transition> </v-fade-transition>
+          </v-card>
+        </v-hover>
       </v-slide-group-item>
     </v-slide-group>
 
-    <div v-if="!store.providers.length" class="placeholder-container">
+    <div
+      v-if="!store.providers.length"
+      class="d-flex align-center justify-center position-absolute"
+      style="inset: 0"
+    >
       <v-progress-circular indeterminate color="primary" />
     </div>
   </div>
 </template>
-
-<style scoped>
-.provider-slider-wrapper {
-  position: relative;
-  max-width: 100%;
-  overflow: hidden;
-  padding-inline: 8px;
-}
-
-.provider-card {
-  width: 260px;
-  min-width: 260px;
-  cursor: pointer;
-  transition:
-    transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.28s;
-  position: relative;
-  background: linear-gradient(135deg, var(--v-theme-surface) 0%, rgba(255, 255, 255, 0.04) 100%);
-}
-
-.provider-card:hover {
-  transform: translateY(-4px);
-}
-
-.provider-card:active {
-  transform: translateY(-1px) scale(0.99);
-}
-
-.soft-avatar {
-  background: radial-gradient(
-    circle at 30% 30%,
-    rgba(255, 255, 255, 0.35),
-    rgba(255, 255, 255, 0.05)
-  );
-  border: 1px solid rgba(var(--v-border-color), 0.1);
-  overflow: hidden;
-}
-
-.provider-name {
-  max-width: 140px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.selected-chip {
-  outline: 2px solid var(--v-theme-primary);
-  outline-offset: 2px;
-  border-radius: 14px;
-}
-
-.selection-overlay {
-  transition: opacity 0.25s;
-}
-
-.scroll-hint {
-  position: absolute;
-  top: 4px;
-  right: 12px;
-  background: rgba(0, 0, 0, 0.55);
-  color: #fff;
-  padding: 4px 10px;
-  font-size: 0.72rem;
-  border-radius: 24px;
-  letter-spacing: 0.5px;
-  backdrop-filter: blur(4px);
-  z-index: 6;
-  user-select: none;
-  cursor: pointer;
-  animation: fadeIn 0.5s ease;
-}
-
-.animate-nudge {
-  animation: nudge 1.4s ease-in-out infinite;
-}
-
-.nav-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 5;
-  background: rgba(0, 0, 0, 0.45) !important;
-  color: #fff !important;
-  backdrop-filter: blur(4px);
-  transition: background 0.25s;
-}
-
-.nav-btn:hover {
-  background: rgba(0, 0, 0, 0.7) !important;
-}
-
-.nav-btn.prev {
-  left: 4px;
-}
-.nav-btn.next {
-  right: 4px;
-}
-
-.edge-fade {
-  position: absolute;
-  top: 0;
-  width: 52px;
-  height: 100%;
-  z-index: 4;
-  pointer-events: none;
-}
-
-.edge-fade.left {
-  left: 0;
-  background: linear-gradient(to right, var(--v-theme-background), rgba(0, 0, 0, 0));
-}
-
-.edge-fade.right {
-  right: 0;
-  background: linear-gradient(to left, var(--v-theme-background), rgba(0, 0, 0, 0));
-}
-
-.placeholder-container {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-@keyframes nudge {
-  0%,
-  60%,
-  100% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  30% {
-    transform: translateX(-4px);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.letter-space {
-  letter-spacing: 1px;
-}
-</style>

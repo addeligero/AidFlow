@@ -99,21 +99,24 @@ const handleFileUpload = async (event: Event) => {
           value="/admin"
           prepend-icon="mdi-view-dashboard"
           title="Dashboard"
-          active-color="primary"
+          color="primary"
+          base-color="grey-lighten-1"
         />
         <v-list-item
           to="/myrules"
           value="/myrules"
           prepend-icon="mdi-account-multiple"
           title="Add rules"
-          active-color="primary"
+          color="primary"
+          base-color="grey-lighten-1"
         />
         <v-list-item
           to="/starred"
           value="/starred"
           prepend-icon="mdi-star"
           title="Starred"
-          active-color="primary"
+          color="primary"
+          base-color="grey-lighten-1"
         />
       </v-list>
     </v-navigation-drawer>
