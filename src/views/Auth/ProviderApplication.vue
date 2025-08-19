@@ -2,7 +2,9 @@
 import ClientLayout from '@/layouts/ClientLayout.vue'
 import { ref, reactive } from 'vue'
 import supabase from '@/lib/Supabase'
+import { useUserStore } from '@/stores/users'
 
+const store = useUserStore()
 type VFormRef = {
   validate: () => Promise<{ valid: boolean }>
   reset: () => void
@@ -42,6 +44,7 @@ async function submitForm() {
       contact_person: form.contactPerson.trim(),
       agency_email: form.agencyEmail.trim().toLowerCase(),
       agency_num: form.agencyNumber.trim(),
+      id: store.user_id,
     }
 
     const { error } = await supabase.from('providers').insert([payload])

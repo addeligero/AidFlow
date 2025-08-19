@@ -10,12 +10,13 @@ export const useUserStore = defineStore(
     const isUserLoaded = ref(false)
     const isImageUploading = ref(false)
     const userProfileImg = ref<string>('')
+    const user_id = ref<string>('')
 
     // Fetch the authenticated user and profile image
     const fetchUser = async () => {
       console.log('Fetching user data...')
+
       if (isUserLoaded.value) return
-      console.log('Fetching user data...', isUserLoaded.value)
 
       const {
         data: { user: authUser },
@@ -33,12 +34,14 @@ export const useUserStore = defineStore(
 
       const { data, error } = await supabase
         .from('users')
-        .select('img')
+        .select('id,img')
         .eq('user_id', authUser.id)
         .single()
 
       if (!error && data?.img) {
         userProfileImg.value = data.img
+
+        user_id.value = data.id
       } else {
         // Fallback avatar from metadata
         const metadata = authUser.user_metadata || {}
@@ -63,10 +66,6 @@ export const useUserStore = defineStore(
 
     const userEmail = computed(() => {
       return user.value?.email || 'No email'
-    })
-
-    const user_id = computed(() => {
-      return user.value?.id || 'No email'
     })
 
     const reset = () => {
