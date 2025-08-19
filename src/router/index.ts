@@ -5,6 +5,7 @@ import Dashboard from '@/views/Client/ClientDashbaord.vue'
 import supabase from '@/lib/Supabase'
 import AdminDashboard from '@/views/admin/AdminDashboard.vue'
 import ProviderApplication from '@/views/Auth/ProviderApplication.vue'
+import RulesSubmission from '@/views/admin/RulesSubmission.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -35,6 +36,12 @@ const router = createRouter({
       path: '/application',
       name: 'Provider Application',
       component: ProviderApplication,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/myrules',
+      name: 'Provider Rules',
+      component: RulesSubmission,
       meta: { requiresAuth: true },
     },
   ],
