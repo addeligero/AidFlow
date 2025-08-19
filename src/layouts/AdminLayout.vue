@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useTheme, useDisplay } from 'vuetify'
 import { ref } from 'vue'
-import AdminCard from '@/components/Admin/AdminCard.vue'
+
 import { useUserStore } from '@/stores/users'
 import supabase from '@/lib/Supabase'
 
@@ -128,13 +128,7 @@ const handleFileUpload = async (event: Event) => {
         <hr />
         <br />
 
-        <v-container>
-          <AdminCard
-            title="Rules"
-            subHeader="Empower Your Community"
-            shortStatement="Click below to add or update your community guidelines."
-            buttonText="Add Rules"
-        /></v-container>
+        <v-container> <slot /></v-container>
       </v-main>
     </v-layout>
   </v-card>
