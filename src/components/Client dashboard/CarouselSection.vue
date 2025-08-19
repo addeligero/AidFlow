@@ -4,7 +4,6 @@ import { providersStore } from '@/stores/providers'
 
 const store = providersStore()
 
-// v-slide-group model (index)
 const model = ref<number | null>(0)
 
 const showHint = ref(true)
@@ -24,7 +23,7 @@ function firstInteract() {
 
 function scrollNext() {
   firstInteract()
-  // Advance one item if possible
+
   if (model.value == null) model.value = 0
   else if (model.value < store.providers.length - 1) model.value++
 }
@@ -34,10 +33,9 @@ function scrollPrev() {
   if (model.value && model.value > 0) model.value--
 }
 
-// Allow mouse wheel vertical to act as horizontal scrolling
 function onWheel(e: WheelEvent) {
   if (!store.providers.length) return
-  // Only act if vertical intent is stronger
+
   if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
     e.preventDefault()
     if (e.deltaY > 0) scrollNext()
@@ -181,7 +179,7 @@ watch(model, () => firstInteract())
               </v-avatar>
               <div class="text-truncate">
                 <h4 class="mb-1 text-subtitle-1 font-weight-medium text-truncate">
-                  {{ provider.agencyName }}
+                  {{ provider.agency_name }}
                 </h4>
                 <div class="text-caption text-medium-emphasis">Service Provider</div>
               </div>

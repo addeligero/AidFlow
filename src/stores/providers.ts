@@ -1,40 +1,97 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import supabase from '@/lib/Supabase'
-import defaultlogo from '@/assets/img/logo/defaultlogo.jp.jpg' // check extension
+import defaultlogo from '@/assets/img/logo/defaultlogo.jp.jpg' // ✅ check extension
+
+type Provider = {
+  id: string
+  agency_name: string
+  logo?: string
+}
+
+type Rule = {
+  id: string
+  rule_name: string
+  conditions: Record<string, any>
+  subsidy_amount?: number
+  provider: {
+    agency_name: string
+    logo?: string
+  }
+}
 
 export const providersStore = defineStore('providers', () => {
-  const providers = ref<{ agencyName: string; logo: string }[]>([])
-  const loading = ref(false)
-  const rules = ref<any[]>([])
-  const rulesLoaded = ref(false)
+  // --- Providers ---
+  const providers = ref<Provider[]>([])
+  const providersLoading = ref(false)
 
   const fetchProviders = async () => {
-    if (loading.value) return
-    loading.value = true
-    const { data, error } = await supabase.from('providers').select('agency_name, logo')
+    if (providersLoading.value) return
+    providersLoading.value = true
+
+    const { data, error } = await supabase.from('providers').select('id, agency_name, logo')
+
     if (error) {
       console.error('Error fetching providers:', error)
     } else {
-      providers.value = (data || []).map((p) => ({
-        agencyName: p.agency_name,
-        logo: p.logo || defaultlogo,
-      }))
+      providers.value =
+        data?.map((p) => ({
+          id: p.id,
+          agency_name: p.agency_name,
+          logo: p.logo || defaultlogo,
+        })) || []
     }
-    loading.value = false
+
+    providersLoading.value = false
   }
 
+  // --- Rules ---
+  const rules = ref<Rule[]>([])
+  const rulesLoading = ref(false)
+
   const fetchRules = async () => {
-    if (rulesLoaded.value) return
-    rulesLoaded.value = true
-    const { data, error } = await supabase.from('rules').select('*')
+    if (rulesLoading.value) return
+    rulesLoading.value = true
+    console.log('Fetching rules...')
+
+    const { data, error } = await supabase.from('subsidy_rules').select(`
+  id,
+  rule_name,
+  conditions,
+  subsidy_amount,
+  provider:providers (
+    agency_name,
+    logo
+  )
+`)
+
+    console.log('Fetched rules:', data)
+
     if (error) {
       console.error('Error fetching rules:', error)
     } else {
-      rules.value = data || []
+      console.log('Fetched rules:', data)
+      rules.value = (data || []).map((r: any) => ({
+        id: r.id,
+        rule_name: r.rule_name,
+        conditions: r.conditions,
+        subsidy_amount: r.subsidy_amount,
+        provider: {
+          agency_name: r.provider?.agency_name || 'Unknown',
+          logo: r.provider?.logo || defaultlogo,
+        },
+      })) as Rule[]
     }
-    rulesLoaded.value = false
+
+    rulesLoading.value = false
   }
 
-  return { providers, loading, fetchProviders, fetchRules, rules }
+  return {
+    providers,
+    providersLoading,
+    fetchProviders,
+    rules,
+    rulesLoading,
+    fetchRules,
+  }
 })
