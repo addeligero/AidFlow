@@ -164,11 +164,11 @@ const handleFileUpload = async (event: Event) => {
         </RouterLink>
 
         <!-- About -->
-        <RouterLink to="/about" custom v-slot="{ navigate }">
+        <RouterLink to="/rules" custom v-slot="{ navigate }">
           <v-list-item
             prepend-icon="mdi-forum"
-            title="About"
-            :active="route.path === '/about'"
+            title="View Rules"
+            :active="route.path === '/rules'"
             @click="
               () => {
                 emit('update:modelValue', false)
