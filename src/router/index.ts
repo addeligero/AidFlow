@@ -6,7 +6,8 @@ import supabase from '@/lib/Supabase'
 import AdminDashboard from '@/views/admin/AdminDashboard.vue'
 import ProviderApplication from '@/views/Auth/ProviderApplication.vue'
 import RulesSubmission from '@/views/admin/RulesSubmission.vue'
-import ViewRules from '@/views/admin/ViewRules.vue'
+import ViewRules from '@/views/Client/ViewRules.vue'
+import ClientApproved from '@/views/Client/ClientApproved.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -49,6 +50,12 @@ const router = createRouter({
       path: '/rules',
       name: 'View Rules',
       component: ViewRules,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/approved',
+      name: 'Client Approved',
+      component: ClientApproved,
       meta: { requiresAuth: true },
     },
   ],
