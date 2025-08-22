@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import supabase from '@/lib/Supabase'
 import { useUserStore } from '@/stores/users'
 import { providersStore } from '@/stores/providers'
 
+const router = useRouter()
 const store = providersStore()
+const userStore = useUserStore()
+
 onMounted(() => {
   userStore.fetchUser()
 })
-const userStore = useUserStore()
 
 const ruleName = ref('')
 const subsidyAmount = ref<number | null>(null)
@@ -134,21 +137,7 @@ const resetForm = () => {
         </div>
       </v-card-text>
 
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn text @click="closeDialog">Close</v-btn>
-        <v-btn
-          v-if="success"
-          color="primary"
-          @click="
-            () => {
-              closeDialog() /* optionally navigate or perform other actions */
-            }
-          "
-        >
-          OK
-        </v-btn>
-      </v-card-actions>
+      <v-btn v-if="success" color="primary" @click="router.push('/dashboard')"> OK </v-btn>
     </v-card>
   </v-dialog>
 </template>
