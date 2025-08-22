@@ -12,7 +12,6 @@ export const useUserStore = defineStore(
     const userProfileImg = ref<string>('')
     const user_id = ref<string>('')
 
-    // Fetch the authenticated user and profile image
     const fetchUser = async () => {
       console.log('Fetching user data...')
 

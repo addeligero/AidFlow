@@ -9,7 +9,7 @@ const expanded = ref<string[]>([])
 
 onMounted(() => {
   store.fetchRules()
-  console.log('rles', store.rules)
+  store.fetchProviders()
 })
 
 const filteredRules = computed(() => {

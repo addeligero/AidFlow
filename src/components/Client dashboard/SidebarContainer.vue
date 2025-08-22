@@ -3,14 +3,28 @@ import { useUserStore } from '@/stores/users'
 import supabase from '@/lib/Supabase'
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-
+import { providersStore } from '@/stores/providers'
+const ps = providersStore()
 const route = useRoute()
 const userStore = useUserStore()
+const status = ref('')
 
-onMounted(() => {
-  if (!userStore.isUserLoaded) {
-    console.log('Fetching user data...')
-    userStore.fetchUser()
+onMounted(async () => {
+  console.log('Loading user and providers...')
+  await userStore.fetchUser()
+  await ps.fetchProviders()
+
+  console.log('user_id:', userStore.user_id)
+  console.log('providers:', ps.providers)
+
+  const myProvider = ps.providers.find((p) => p.id === userStore.user_id)
+
+  if (myProvider) {
+    status.value = myProvider.status
+    console.log('Provider status:', status.value)
+  } else {
+    console.log('User is not a provider')
+    status.value = 'not a provider'
   }
 })
 const props = defineProps({

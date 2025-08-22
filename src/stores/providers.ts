@@ -7,6 +7,7 @@ type Provider = {
   id: string
   agency_name: string
   logo?: string
+  status: string
 }
 
 type Rule = {
@@ -21,25 +22,27 @@ type Rule = {
 }
 
 export const providersStore = defineStore('providers', () => {
-  // --- Providers ---
   const providers = ref<Provider[]>([])
   const providersLoading = ref(false)
-
   const fetchProviders = async () => {
     if (providersLoading.value) return
     providersLoading.value = true
+    console.log('Fetching providers...')
 
-    const { data, error } = await supabase.from('providers').select('id, agency_name, logo')
+    const { data, error } = await supabase.from('providers').select('id, agency_name, logo, status')
 
     if (error) {
       console.error('Error fetching providers:', error)
     } else {
       providers.value =
-        data?.map((p) => ({
+        data?.map((p: any) => ({
           id: p.id,
           agency_name: p.agency_name,
           logo: p.logo || defaultlogo,
+          status: p.status,
         })) || []
+
+      providers.value.forEach((p) => console.log('status', p.status))
     }
 
     providersLoading.value = false
@@ -61,7 +64,8 @@ export const providersStore = defineStore('providers', () => {
   subsidy_amount,
   provider:providers (
     agency_name,
-    logo
+    logo,
+    status
   )
 `)
 
@@ -79,6 +83,7 @@ export const providersStore = defineStore('providers', () => {
         provider: {
           agency_name: r.provider?.agency_name || 'Unknown',
           logo: r.provider?.logo || defaultlogo,
+          status: r.provider?.status,
         },
       })) as Rule[]
     }

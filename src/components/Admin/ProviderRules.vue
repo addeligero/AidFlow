@@ -17,7 +17,7 @@ const conditions = ref<{ key: string; value: any }[]>([])
 const loading = ref(false)
 const success = ref(false)
 const errorMessage = ref('')
-
+const requested = ref(false)
 const addCondition = () => {
   conditions.value.push({ key: '', value: '' })
 }
@@ -55,11 +55,12 @@ const submitRule = async () => {
     } else {
       success.value = true
       store.fetchRules()
-      resetForm()
     }
   } catch (err: any) {
     errorMessage.value = err.message
   }
+  resetForm()
+  requested.value = true
 
   loading.value = false
 }
@@ -110,4 +111,44 @@ const resetForm = () => {
       </v-form>
     </v-card-text>
   </v-card>
+
+  <!-- Dialog shown after a request is made -->
+  <v-dialog v-model="requested" persistent max-width="500">
+    <v-card>
+      <v-card-title class="text-lg font-semibold">
+        <span v-if="success">Request Completed</span>
+        <span v-else>Request Error</span>
+      </v-card-title>
+
+      <v-card-text>
+        <div v-if="success" class="flex items-center gap-3">
+          <v-icon color="success">mdi-check-circle</v-icon>
+          <div>Rule added successfully.</div>
+        </div>
+        <div v-else class="flex items-start gap-3">
+          <v-icon color="error">mdi-alert-circle</v-icon>
+          <div>
+            <div class="font-semibold">There was a problem adding the rule.</div>
+            <div v-if="errorMessage" class="text-sm text-gray-600 mt-1">{{ errorMessage }}</div>
+          </div>
+        </div>
+      </v-card-text>
+
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn text @click="closeDialog">Close</v-btn>
+        <v-btn
+          v-if="success"
+          color="primary"
+          @click="
+            () => {
+              closeDialog() /* optionally navigate or perform other actions */
+            }
+          "
+        >
+          OK
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
