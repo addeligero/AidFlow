@@ -1,56 +1,45 @@
 <script setup lang="ts">
 import { useUserStore } from '@/stores/users'
-import supabase from '@/lib/Supabase'
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
 import { providersStore } from '@/stores/providers'
+import supabase from '@/lib/Supabase'
+import { ref, onMounted, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+
 const ps = providersStore()
 const route = useRoute()
+const router = useRouter()
 const userStore = useUserStore()
-const status = ref('')
+
+const status = ref<'approved' | 'pending' | 'rejected' | 'not a provider'>('not a provider')
+const showPendingDialog = ref(false)
+const showRejectedDialog = ref(false)
 
 onMounted(async () => {
-  console.log('Loading user and providers...')
   await userStore.fetchUser()
   await ps.fetchProviders()
 
-  console.log('user_id:', userStore.user_id)
-  console.log('providers:', ps.providers)
-
   const myProvider = ps.providers.find((p) => p.id === userStore.user_id)
+  status.value = myProvider ? (myProvider.status as any) : 'not a provider'
+})
 
-  if (myProvider) {
-    status.value = myProvider.status
-    console.log('Provider status:', status.value)
-  } else {
-    console.log('User is not a provider')
-    status.value = 'not a provider'
-  }
-})
-const props = defineProps({
-  modelValue: Boolean,
-})
+const props = defineProps({ modelValue: Boolean })
 const emit = defineEmits(['update:modelValue'])
 
 const showAvatarDialog = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const isUploading = ref(false)
 
-const triggerFileInput = () => {
-  fileInput.value?.click()
-}
+const triggerFileInput = () => fileInput.value?.click()
 
 const logout = async () => {
   const { error } = await supabase.auth.signOut()
-  if (error) {
-    console.error('Logout failed:', error.message)
-  } else {
+  if (error) console.error('Logout failed:', error.message)
+  else {
     userStore.reset()
     window.location.href = '/'
   }
 }
 
-// Upload and update store
 const handleFileUpload = async (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
@@ -59,14 +48,9 @@ const handleFileUpload = async (event: Event) => {
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser()
-
-  if (!authUser) {
-    console.error('No authenticated user found')
-    return
-  }
+  if (!authUser) return console.error('No authenticated user found')
 
   isUploading.value = true
-
   const fileExt = file.name.split('.').pop()
   const fileName = `${authUser.id}-${Date.now()}.${fileExt}`
   const filePath = `client-profile/${fileName}`
@@ -97,6 +81,25 @@ const handleFileUpload = async (event: Event) => {
 
   userStore.userProfileImg = publicUrl
   isUploading.value = false
+}
+
+const providerActionLabel = computed(() => {
+  if (status.value === 'approved') return 'Provider Dashboard'
+  if (status.value === 'pending') return 'Pending Approval'
+  if (status.value === 'rejected') return 'Application Rejected'
+  return 'Be a Provider'
+})
+
+const handleProviderAction = () => {
+  if (status.value === 'approved') {
+    router.push('/admin')
+  } else if (status.value === 'pending') {
+    showPendingDialog.value = true
+  } else if (status.value === 'rejected') {
+    showRejectedDialog.value = true
+  } else {
+    router.push('/application')
+  }
 }
 </script>
 
@@ -177,7 +180,7 @@ const handleFileUpload = async (event: Event) => {
           />
         </RouterLink>
 
-        <!-- About -->
+        <!-- View Rules -->
         <RouterLink to="/rules" custom v-slot="{ navigate }">
           <v-list-item
             prepend-icon="mdi-forum"
@@ -192,20 +195,17 @@ const handleFileUpload = async (event: Event) => {
           />
         </RouterLink>
 
-        <!-- Be a provider -->
-        <RouterLink to="/application" custom v-slot="{ navigate }">
-          <v-list-item
-            prepend-icon="mdi-forum"
-            title="Be a provider"
-            :active="route.path === '/application'"
-            @click="
-              () => {
-                emit('update:modelValue', false)
-                navigate()
-              }
-            "
-          />
-        </RouterLink>
+        <!-- Provider/Admin action -->
+        <v-list-item
+          prepend-icon="mdi-account-badge"
+          :title="providerActionLabel"
+          @click="
+            () => {
+              emit('update:modelValue', false)
+              handleProviderAction()
+            }
+          "
+        />
       </v-list>
     </div>
 
@@ -220,6 +220,37 @@ const handleFileUpload = async (event: Event) => {
       Logout
     </v-btn>
   </v-navigation-drawer>
+
+  <!-- Pending Status Dialog -->
+  <v-dialog v-model="showPendingDialog" max-width="420">
+    <v-card>
+      <v-card-title class="text-h6">Application Pending</v-card-title>
+      <v-card-text>
+        Your provider application is currently under review. You'll be notified once it's approved.
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <RouterLink to="/dashboard">
+          <v-btn variant="text" @click="showPendingDialog = false">Close</v-btn>
+        </RouterLink>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- Rejected Status Dialog -->
+  <v-dialog v-model="showRejectedDialog" max-width="420">
+    <v-card>
+      <v-card-title class="text-h6">Application Rejected</v-card-title>
+      <v-card-text>
+        Unfortunately, your provider application was not approved. You may update your information
+        and apply again.
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="showRejectedDialog = false">Close</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <style scoped>

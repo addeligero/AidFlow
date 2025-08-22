@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import supabase from '@/lib/Supabase'
-import defaultlogo from '@/assets/img/logo/defaultlogo.jp.jpg' // ✅ check extension
+import defaultlogo from '@/assets/img/logo/defaultlogo.jp.jpg'
 
 type Provider = {
   id: string
@@ -24,8 +24,10 @@ type Rule = {
 export const providersStore = defineStore('providers', () => {
   const providers = ref<Provider[]>([])
   const providersLoading = ref(false)
+
   const fetchProviders = async () => {
-    if (providersLoading.value) return
+    if (providersLoading.value || providers.value.length > 0) return
+
     providersLoading.value = true
     console.log('Fetching providers...')
 
@@ -43,6 +45,10 @@ export const providersStore = defineStore('providers', () => {
         })) || []
 
       providers.value.forEach((p) => console.log('status', p.status))
+
+      if (providers.value.length === 0) {
+        console.log('No providers found')
+      }
     }
 
     providersLoading.value = false

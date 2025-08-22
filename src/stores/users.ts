@@ -13,10 +13,9 @@ export const useUserStore = defineStore(
     const user_id = ref<string>('')
 
     const fetchUser = async () => {
-      console.log('Fetching user data...')
-
       if (isUserLoaded.value) return
 
+      console.log('Fetching user data...')
       const {
         data: { user: authUser },
         error: authError,

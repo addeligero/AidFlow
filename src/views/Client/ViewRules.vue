@@ -8,8 +8,12 @@ const search = ref('')
 const expanded = ref<string[]>([])
 
 onMounted(() => {
-  store.fetchRules()
-  store.fetchProviders()
+  if (store.rules.length === 0) {
+    store.fetchRules()
+  }
+  if (store.providers.length === 0) {
+    store.fetchProviders()
+  }
 })
 
 const filteredRules = computed(() => {
