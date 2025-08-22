@@ -8,6 +8,8 @@ import ProviderApplication from '@/views/Auth/ProviderApplication.vue'
 import RulesSubmission from '@/views/admin/RulesSubmission.vue'
 import ViewRules from '@/views/Client/ViewRules.vue'
 import ClientApproved from '@/views/Client/ClientApproved.vue'
+import { useUserStore } from '@/stores/users'
+import { providersStore } from '@/stores/providers'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -32,7 +34,7 @@ const router = createRouter({
       path: '/admin',
       name: 'AdminDashboard',
       component: AdminDashboard,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
       path: '/application',
@@ -61,22 +63,43 @@ const router = createRouter({
   ],
 })
 
-//  Global navigation guard
 router.beforeEach(async (to, from, next) => {
+  const userStore = useUserStore()
+  const ps = providersStore()
+
+  // Check authentication
   if (to.meta.requiresAuth) {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-
     if (!user) {
       return next({ name: 'home' })
     }
   }
+
+  // Redirect authenticated users
   if (to.name === 'register' || to.name === 'home') {
     const {
       data: { user },
     } = await supabase.auth.getUser()
     if (user) {
+      return next({ name: 'dashboard' })
+    }
+  }
+
+  // (approved provider only)
+  if (to.meta.requiresAdmin) {
+    if (!userStore.isUserLoaded) {
+      await userStore.fetchUser()
+    }
+    if (ps.providers.length === 0) {
+      await ps.fetchProviders()
+    }
+
+    const myProvider = ps.providers.find((p) => p.id === userStore.user_id)
+
+    if (!myProvider || myProvider.status !== 'approved') {
+      console.warn('Access denied: User is not an approved provider')
       return next({ name: 'dashboard' })
     }
   }
