@@ -10,7 +10,6 @@ const props = defineProps<{ userAvatar?: string }>()
 const drawer = ref(true)
 const { mdAndDown } = useDisplay()
 
-// Theme toggle
 const theme = useTheme()
 const savedTheme = localStorage.getItem('theme')
 if (savedTheme) {
@@ -59,11 +58,9 @@ const handleFileUpload = async (event: Event) => {
     return
   }
 
-  // Get public URL
   const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
   const publicUrl = publicUrlData.publicUrl
 
-  // Update users table
   const { error: updateError } = await supabase
     .from('users')
     .update({ img: publicUrl })
@@ -111,17 +108,16 @@ const handleFileUpload = async (event: Event) => {
           base-color="grey-lighten-1"
         />
         <v-list-item
-          to="/starred"
-          value="/starred"
-          prepend-icon="mdi-star"
-          title="Starred"
+          to="/dashboard"
+          value="/dashboard"
+          prepend-icon="mdi-account-circle"
+          title="Client Dashboard"
           color="primary"
           base-color="grey-lighten-1"
         />
       </v-list>
     </v-navigation-drawer>
 
-    <!-- App Bar -->
     <v-app-bar app flat>
       <v-app-bar-nav-icon v-if="mdAndDown" @click="drawer = !drawer" />
       <v-toolbar-title class="text-h6">Admin</v-toolbar-title>
