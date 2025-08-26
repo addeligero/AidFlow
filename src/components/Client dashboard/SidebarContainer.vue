@@ -2,7 +2,7 @@
 import { useUserStore } from '@/stores/users'
 import { providersStore } from '@/stores/providers'
 import supabase from '@/lib/Supabase'
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const ps = providersStore()
@@ -14,12 +14,38 @@ const status = ref<'approved' | 'pending' | 'rejected' | 'not a provider'>('not 
 const showPendingDialog = ref(false)
 const showRejectedDialog = ref(false)
 
+const channel = ref<any | null>(null)
+
 onMounted(async () => {
-  await userStore.fetchUser()
-  await ps.fetchProviders()
+  if (!userStore.isUserLoaded) await userStore.fetchUser()
+  if (ps.providers.length === 0) await ps.fetchProviders()
 
   const myProvider = ps.providers.find((p) => p.id === userStore.user_id)
   status.value = myProvider ? (myProvider.status as any) : 'not a provider'
+
+  channel.value = supabase
+    .channel('provider-status')
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'providers',
+        filter: `id=eq.${userStore.user_id}`,
+      },
+      (payload) => {
+        const updatedStatus = payload.new.status
+        status.value = updatedStatus as any
+        console.log('Provider status updated:', updatedStatus)
+      },
+    )
+    .subscribe()
+})
+
+onBeforeUnmount(() => {
+  if (channel.value) {
+    supabase.removeChannel(channel.value)
+  }
 })
 
 const props = defineProps({ modelValue: Boolean })
