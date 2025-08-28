@@ -100,7 +100,7 @@ const handleFileUpload = async (event: Event) => {
           base-color="grey-lighten-1"
         />
         <v-list-item
-          to="/myrules"
+          to="/my-rules"
           value="/myrules"
           prepend-icon="mdi-account-multiple"
           title="Add rules"

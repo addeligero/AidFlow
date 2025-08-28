@@ -44,7 +44,7 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/myrules',
+      path: '/add-rules',
       name: 'Provider Rules',
       component: RulesSubmission,
       meta: { requiresAuth: true, requiresAdmin: true },
@@ -55,17 +55,12 @@ const router = createRouter({
       component: ViewRules,
       meta: { requiresAuth: true },
     },
-    {
-      path: '/approved',
-      name: 'Client Approved',
-      component: ClientApproved,
-      meta: { requiresAuth: true },
-    },
+
     {
       path: '/my-rules',
       name: 'My Rules',
       component: MyRules,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresAdmin: true },
     },
   ],
 })
