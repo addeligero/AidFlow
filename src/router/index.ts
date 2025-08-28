@@ -10,6 +10,7 @@ import ViewRules from '@/views/Client/ViewRules.vue'
 import ClientApproved from '@/views/Client/ClientApproved.vue'
 import { useUserStore } from '@/stores/users'
 import { providersStore } from '@/stores/providers'
+import MyRules from '@/views/admin/MyRules.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -46,7 +47,7 @@ const router = createRouter({
       path: '/myrules',
       name: 'Provider Rules',
       component: RulesSubmission,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
       path: '/rules',
@@ -58,6 +59,12 @@ const router = createRouter({
       path: '/approved',
       name: 'Client Approved',
       component: ClientApproved,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/my-rules',
+      name: 'My Rules',
+      component: MyRules,
       meta: { requiresAuth: true },
     },
   ],
