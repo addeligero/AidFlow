@@ -5,7 +5,6 @@ import Dashboard from '@/views/Client/ClientDashbaord.vue'
 import supabase from '@/lib/Supabase'
 import AdminDashboard from '@/views/admin/AdminDashboard.vue'
 import ProviderApplication from '@/views/Auth/ProviderApplication.vue'
-import RulesSubmission from '@/views/admin/RulesSubmission.vue'
 import ViewRules from '@/views/Client/ViewRules.vue'
 import ClientApproved from '@/views/Client/ClientApproved.vue'
 import { useUserStore } from '@/stores/users'
@@ -46,7 +45,7 @@ const router = createRouter({
     {
       path: '/add-rules',
       name: 'Provider Rules',
-      component: RulesSubmission,
+      component: MyRules,
       meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
