@@ -8,7 +8,7 @@ import AdminCard from '@/components/Admin/AdminCard.vue'
       title="Rules"
       subHeader="Empower Your Community"
       shortStatement="Click below to add or update your community guidelines."
-      buttonText="Add Rules"
+      buttonText="View Rules Here"
     />
   </AdminLayout>
 </template>

@@ -26,11 +26,9 @@ const buttonText = props.buttonText ?? 'Button Text'
     </v-card-text>
 
     <v-card-actions>
-      <RouterLink to="/myrules">
+      <RouterLink to="/my-rules">
         <v-btn color="orange" :text="buttonText"></v-btn>
       </RouterLink>
-
-      <v-btn color="orange" text="Explore"></v-btn>
     </v-card-actions>
   </v-card>
 </template>

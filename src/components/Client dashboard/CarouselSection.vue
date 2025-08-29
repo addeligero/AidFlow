@@ -192,13 +192,11 @@ watch(model, () => firstInteract())
                 size="small"
                 append-icon="mdi-arrow-right"
                 class="ms-n2"
+                to="/rules"
               >
                 View Rules
               </v-btn>
               <v-spacer />
-              <v-chip size="x-small" color="primary" variant="flat" class="text-uppercase"
-                >View here</v-chip
-              >
             </div>
             <v-fade-transition> </v-fade-transition>
           </v-card>
