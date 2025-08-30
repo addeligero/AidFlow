@@ -14,7 +14,7 @@ const fetchUsers = async () => {
   errorMsg.value = ''
   const { data, error } = await supabase
     .from('users')
-    .select('id,full_name,email,created_at,provider_id')
+    .select('id,first_name,last_name,email,created_at')
   if (error) {
     errorMsg.value = error.message
     users.value = []
@@ -42,6 +42,67 @@ const recentProviders = computed(() =>
     .slice(0, 5),
 )
 const recentRules = computed(() => [...ps.rules].sort((a, b) => (b.id > a.id ? -1 : 1)).slice(0, 5))
+
+// Moderation state
+const loadingIds = ref<Set<string>>(new Set())
+const snackbar = ref<{ show: boolean; text: string; color: string }>({
+  show: false,
+  text: '',
+  color: 'success',
+})
+const rejectDialog = ref(false)
+const rejectReason = ref('')
+const rejectTargetId = ref<string | null>(null)
+const rejectLoading = ref(false)
+
+function openReject(id: string) {
+  rejectTargetId.value = id
+  rejectReason.value = ''
+  rejectDialog.value = true
+}
+
+async function approveProvider(id: string) {
+  try {
+    loadingIds.value.add(id)
+    const { error } = await supabase.from('providers').update({ status: 'approved' }).eq('id', id)
+    if (error) throw error
+    snackbar.value = { show: true, text: 'Provider approved', color: 'success' }
+    await ps.fetchProviders()
+  } catch (e: any) {
+    snackbar.value = { show: true, text: e?.message || 'Failed to approve', color: 'error' }
+  } finally {
+    loadingIds.value.delete(id)
+  }
+}
+
+async function rejectProvider() {
+  if (!rejectTargetId.value) return
+  rejectLoading.value = true
+  try {
+    // Try to save reason if column exists; otherwise fall back to status only
+    let { error } = await supabase
+      .from('providers')
+      .update({ status: 'rejected', rejection_reason: rejectReason.value || null })
+      .eq('id', rejectTargetId.value)
+    if (error) {
+      // retry with status only
+      const retry = await supabase
+        .from('providers')
+        .update({ status: 'rejected' })
+        .eq('id', rejectTargetId.value)
+      if (retry.error) throw retry.error
+    }
+    snackbar.value = { show: true, text: 'Provider rejected', color: 'success' }
+    rejectDialog.value = false
+    rejectTargetId.value = null
+    rejectReason.value = ''
+    await ps.fetchProviders()
+  } catch (e: any) {
+    snackbar.value = { show: true, text: e?.message || 'Failed to reject', color: 'error' }
+  } finally {
+    rejectLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -105,6 +166,22 @@ const recentRules = computed(() => [...ps.rules].sort((a, b) => (b.id > a.id ? -
                     {{ p.status }}
                   </v-chip>
                 </v-list-item-subtitle>
+                <template #append>
+                  <div v-if="p.status === 'pending'" class="d-flex ga-2">
+                    <v-btn
+                      size="x-small"
+                      color="success"
+                      variant="tonal"
+                      :loading="loadingIds.has(p.id)"
+                      @click="approveProvider(p.id)"
+                    >
+                      Approve
+                    </v-btn>
+                    <v-btn size="x-small" color="error" variant="tonal" @click="openReject(p.id)">
+                      Reject
+                    </v-btn>
+                  </div>
+                </template>
               </v-list-item>
               <v-list-item v-if="ps.providersLoading">
                 <v-skeleton-loader type="list-item-avatar, list-item-two-line" />
@@ -134,6 +211,26 @@ const recentRules = computed(() => [...ps.rules].sort((a, b) => (b.id > a.id ? -
           </v-card>
         </v-col>
       </v-row>
+
+      <!-- Reject dialog -->
+      <v-dialog v-model="rejectDialog" max-width="520">
+        <v-card>
+          <v-card-title class="text-h6">Reject Provider</v-card-title>
+          <v-card-text>
+            <p class="text-body-2">Optionally add a reason for rejection:</p>
+            <v-textarea v-model="rejectReason" label="Reason" rows="4" auto-grow />
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn variant="text" @click="rejectDialog = false">Cancel</v-btn>
+            <v-btn color="error" :loading="rejectLoading" @click="rejectProvider">Reject</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="2500">
+        {{ snackbar.text }}
+      </v-snackbar>
     </v-container>
   </AdminLayout>
 </template>

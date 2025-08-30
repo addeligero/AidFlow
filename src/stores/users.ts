@@ -11,11 +11,12 @@ export const useUserStore = defineStore(
     const isImageUploading = ref(false)
     const userProfileImg = ref<string>('')
     const user_id = ref<string>('')
+    const first_name = ref<string>('')
 
     const fetchUser = async () => {
       if (isUserLoaded.value) return
 
-      console.log('Fetching user data...')
+      console.log('Fetching user data... bitchrssssssssssss')
       const {
         data: { user: authUser },
         error: authError,
@@ -32,16 +33,21 @@ export const useUserStore = defineStore(
 
       const { data, error } = await supabase
         .from('users')
-        .select('id,img')
+        .select('id,img,last_name')
         .eq('user_id', authUser.id)
         .single()
 
-      if (!error && data?.img) {
-        userProfileImg.value = data.img
+      if (!error) {
+        console.log('niagi here')
 
+        first_name.value = data.last_name
         user_id.value = data.id
+      }
+      if (data?.img) {
+        userProfileImg.value = data.img
       } else {
         // Fallback avatar from metadata
+        console.log('niagi heresss')
         const metadata = authUser.user_metadata || {}
         const gender = metadata.gender === 'female' ? 'women' : 'men'
         const id = metadata.avatar_id || '1'
@@ -85,6 +91,7 @@ export const useUserStore = defineStore(
       userEmail,
       user_id,
       reset,
+      first_name,
     }
   },
   {

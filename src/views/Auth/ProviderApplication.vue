@@ -32,6 +32,7 @@ const rules = {
 
 async function submitForm() {
   errorMsg.value = null
+  console.log('Submitting form with', store.user_id, 'name:', store.first_name)
 
   const validation = await formRef.value?.validate()
   if (!validation?.valid) return
