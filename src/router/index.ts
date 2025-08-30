@@ -6,11 +6,10 @@ import supabase from '@/lib/Supabase'
 import AdminDashboard from '@/views/admin/AdminDashboard.vue'
 import ProviderApplication from '@/views/Auth/ProviderApplication.vue'
 import ViewRules from '@/views/Client/ViewRules.vue'
-import ClientApproved from '@/views/Client/ClientApproved.vue'
 import { useUserStore } from '@/stores/users'
 import { providersStore } from '@/stores/providers'
 import MyRules from '@/views/admin/MyRules.vue'
-
+import SuperAdmin from '@/views/SuperAdmin/SuperAdmin.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -59,6 +58,12 @@ const router = createRouter({
       path: '/my-rules',
       name: 'My Rules',
       component: MyRules,
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/super',
+      name: 'Super Admin',
+      component: SuperAdmin,
       meta: { requiresAuth: true, requiresAdmin: true },
     },
   ],
