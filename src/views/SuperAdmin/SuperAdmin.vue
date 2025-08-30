@@ -77,21 +77,43 @@ async function approveProvider(id: string) {
 
 async function rejectProvider() {
   if (!rejectTargetId.value) return
+
   rejectLoading.value = true
   try {
-    // Try to save reason if column exists; otherwise fall back to status only
-    let { error } = await supabase
+    const { error } = await supabase
       .from('providers')
       .update({ status: 'rejected', rejection_reason: rejectReason.value || null })
       .eq('id', rejectTargetId.value)
+
     if (error) {
-      // retry with status only
       const retry = await supabase
         .from('providers')
         .update({ status: 'rejected' })
         .eq('id', rejectTargetId.value)
       if (retry.error) throw retry.error
     }
+
+    const { data: relatedUsers, error: usersError } = await supabase
+      .from('users')
+      .select('id, email, first_name')
+      .eq('id', rejectTargetId.value)
+
+    if (usersError) {
+      console.warn('⚠️ Could not fetch provider users:', usersError.message)
+    } else if (relatedUsers?.length) {
+      for (const user of relatedUsers) {
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-rejection-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: user.email,
+            firstName: user.first_name,
+            reason: rejectReason.value,
+          }),
+        })
+      }
+    }
+
     snackbar.value = { show: true, text: 'Provider rejected', color: 'success' }
     rejectDialog.value = false
     rejectTargetId.value = null
