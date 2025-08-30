@@ -8,6 +8,8 @@ type Provider = {
   agency_name: string
   logo?: string
   status: string
+  rejection_reason?: string
+  created_at?: string
 }
 
 type Rule = {
@@ -26,32 +28,21 @@ export const providersStore = defineStore('providers', () => {
   const providersLoading = ref(false)
 
   const fetchProviders = async () => {
-    if (providersLoading.value || providers.value.length > 0) return
-
+    if (providersLoading.value) return
     providersLoading.value = true
-    console.log('Fetching providers...')
-
-    const { data, error } = await supabase.from('providers').select('id, agency_name, logo, status')
-
-    if (error) {
-      console.error('Error fetching providers:', error)
-    } else {
-      providers.value =
-        data?.map((p: any) => ({
-          id: p.id,
-          agency_name: p.agency_name,
-          logo: p.logo || defaultlogo,
-          status: p.status,
-        })) || []
-
-      providers.value.forEach((p) => console.log('status', p.status))
-
-      if (providers.value.length === 0) {
-        console.log('No providers found')
-      }
+    try {
+      const { data, error } = await supabase
+        .from('providers')
+        .select('id, agency_name, logo, status, rejection_reason, created_at')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      providers.value = (data || []) as Provider[]
+    } catch (e) {
+      console.error('Failed to fetch providers:', (e as any)?.message || e)
+      providers.value = []
+    } finally {
+      providersLoading.value = false
     }
-
-    providersLoading.value = false
   }
 
   // --- Rules ---

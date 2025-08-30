@@ -125,6 +125,47 @@ async function rejectProvider() {
     rejectLoading.value = false
   }
 }
+
+// Loading flags from store
+const providersLoading = computed<boolean>(() => (ps as any).providersLoading || false)
+const rulesLoading = computed<boolean>(() => (ps as any).rulesLoading || false)
+
+const reasonDialog = ref(false)
+const reasonAgency = ref('')
+const reasonText = ref('')
+const reasonLoading = ref(false)
+
+async function openReason(p: any) {
+  reasonAgency.value = p.agency_name || 'Provider'
+  reasonText.value = ''
+  reasonDialog.value = true
+
+  if (p.rejection_reason) reasonText.value = p.rejection_reason
+  try {
+    reasonLoading.value = true
+    const { data, error } = await supabase
+      .from('providers')
+      .select('rejection_reason')
+      .eq('id', p.id)
+      .single()
+    if (error) throw error
+    reasonText.value = data?.rejection_reason || 'No reason provided.'
+  } catch (e: any) {
+    if (!reasonText.value) reasonText.value = 'No reason provided.'
+  } finally {
+    reasonLoading.value = false
+  }
+}
+
+function copyReason() {
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(reasonText.value)
+    }
+  } catch (e) {
+    console.error('Failed to copy reason:', e)
+  }
+}
 </script>
 
 <template>
@@ -203,9 +244,19 @@ async function rejectProvider() {
                       Reject
                     </v-btn>
                   </div>
+                  <div v-else-if="p.status === 'rejected'">
+                    <v-btn
+                      size="x-small"
+                      variant="text"
+                      prepend-icon="mdi-information-outline"
+                      @click="openReason(p)"
+                    >
+                      Reason
+                    </v-btn>
+                  </div>
                 </template>
               </v-list-item>
-              <v-list-item v-if="ps.providersLoading">
+              <v-list-item v-if="providersLoading">
                 <v-skeleton-loader type="list-item-avatar, list-item-two-line" />
               </v-list-item>
             </v-list>
@@ -226,7 +277,7 @@ async function rejectProvider() {
                   <v-chip size="x-small" color="primary">{{ r.subsidy_amount ?? '—' }}</v-chip>
                 </template>
               </v-list-item>
-              <v-list-item v-if="ps.rulesLoading">
+              <v-list-item v-if="rulesLoading">
                 <v-skeleton-loader type="list-item-two-line" />
               </v-list-item>
             </v-list>
@@ -246,6 +297,23 @@ async function rejectProvider() {
             <v-spacer />
             <v-btn variant="text" @click="rejectDialog = false">Cancel</v-btn>
             <v-btn color="error" :loading="rejectLoading" @click="rejectProvider">Reject</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <!-- Rejection reason dialog -->
+      <v-dialog v-model="reasonDialog" max-width="520">
+        <v-card>
+          <v-card-title class="text-h6">Rejection Reason</v-card-title>
+          <v-card-subtitle class="text-caption">{{ reasonAgency }}</v-card-subtitle>
+          <v-card-text>
+            <v-skeleton-loader v-if="reasonLoading" type="paragraph" />
+            <div v-else class="text-body-2" style="white-space: pre-wrap">{{ reasonText }}</div>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn variant="text" @click="reasonDialog = false">Close</v-btn>
+            <v-btn variant="text" prepend-icon="mdi-content-copy" @click="copyReason">Copy</v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>
