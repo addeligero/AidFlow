@@ -3,6 +3,7 @@ import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue'
 import supabase from '@/lib/Supabase'
 import { useUserStore } from '@/stores/users'
 import AdminLayout from '@/layouts/AdminLayout.vue'
+import RulesCard from '@/components/Admin/RulesCard.vue'
 
 type MyRule = {
   id: string
@@ -17,7 +18,6 @@ const loading = ref(false)
 const errorMsg = ref('')
 const rules = ref<MyRule[]>([])
 
-// State for CRUD
 type KV = { key: string; value: any }
 const editorOpen = ref(false)
 const editorLoading = ref(false)
@@ -52,7 +52,6 @@ async function fetchProviderId() {
   }
 }
 
-// Fetch Rules for the Provider
 async function fetchMyRules() {
   if (!providerId.value) return
   try {
@@ -114,8 +113,6 @@ watch(
   { immediate: true },
 )
 
-// Computed & Helpers
-const totalConditions = (r: MyRule) => Object.keys(r.conditions || {}).length
 const hasRules = computed(() => !loading.value && rules.value.length > 0)
 
 function refresh() {
@@ -270,73 +267,16 @@ async function deleteRule() {
 
       <v-row v-else-if="hasRules">
         <v-col cols="12" md="6" lg="4" v-for="r in rules" :key="r.id" class="d-flex">
-          <v-card class="flex-grow-1 d-flex flex-column" :title="r.rule_name">
-            <v-card-item>
-              <v-card-title class="text-subtitle-1">{{ r.rule_name }}</v-card-title>
-              <v-card-subtitle class="d-flex align-center flex-wrap ga-2">
-                <v-chip size="x-small" color="primary" variant="flat">
-                  Amount: {{ r.subsidy_amount ?? '—' }}
-                </v-chip>
-                <v-chip size="x-small" color="secondary" variant="tonal">
-                  {{ totalConditions(r) }} conditions
-                </v-chip>
-                <span class="text-caption text-medium-emphasis ms-auto" v-if="r.created_at">
-                  {{ new Date(r.created_at).toLocaleString() }}
-                </span>
-              </v-card-subtitle>
-            </v-card-item>
-
-            <v-divider />
-            <v-card-text>
-              <div v-if="totalConditions(r)">
-                <v-table density="compact">
-                  <thead>
-                    <tr>
-                      <th class="text-caption text-medium-emphasis">Condition</th>
-                      <th class="text-caption text-medium-emphasis">Value</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(val, key) in r.conditions" :key="key">
-                      <td class="text-body-2 font-weight-medium">{{ key }}</td>
-                      <td class="text-body-2">{{ val }}</td>
-                    </tr>
-                  </tbody>
-                </v-table>
-              </div>
-              <div v-else class="text-caption text-medium-emphasis">No conditions defined.</div>
-            </v-card-text>
-
-            <v-divider />
-            <v-card-actions>
-              <v-btn
-                size="small"
-                variant="text"
-                color="primary"
-                prepend-icon="mdi-pencil"
-                @click="openEdit(r)"
-              >
-                Edit
-              </v-btn>
-              <v-btn
-                size="small"
-                variant="text"
-                color="error"
-                prepend-icon="mdi-delete"
-                @click="confirmDelete(r.id)"
-              >
-                Delete
-              </v-btn>
-              <v-spacer />
-              <v-tooltip text="Copy JSON" location="top">
-                <template #activator="{ props }">
-                  <v-btn v-bind="props" icon size="small" @click="copyRule(r)">
-                    <v-icon size="18">mdi-content-copy</v-icon>
-                  </v-btn>
-                </template>
-              </v-tooltip>
-            </v-card-actions>
-          </v-card>
+          <RulesCard
+            class="flex-grow-1"
+            :rule="r"
+            amount-label="Amount"
+            conditions-label="conditions"
+            empty-conditions-text="No conditions defined."
+            @edit="openEdit"
+            @delete="confirmDelete"
+            @copy="copyRule"
+          />
         </v-col>
       </v-row>
 
