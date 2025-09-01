@@ -97,7 +97,6 @@ const handleFileUpload = async (event: Event) => {
           prepend-icon="mdi-view-dashboard"
           title="Dashboard"
           color="primary"
-          base-color="grey-lighten-1"
         />
         <v-list-item
           to="/my-rules"
@@ -105,7 +104,6 @@ const handleFileUpload = async (event: Event) => {
           prepend-icon="mdi-account-multiple"
           title="Add rules"
           color="primary"
-          base-color="grey-lighten-1"
         />
         <v-list-item
           to="/dashboard"
@@ -113,7 +111,6 @@ const handleFileUpload = async (event: Event) => {
           prepend-icon="mdi-account-circle"
           title="Client Dashboard"
           color="primary"
-          base-color="grey-lighten-1"
         />
       </v-list>
     </v-navigation-drawer>
