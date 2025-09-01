@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { useTheme, useDisplay } from 'vuetify'
-import { ref } from 'vue'
-
+import { ref, computed, onMounted } from 'vue'
+import { providersStore } from '@/stores/providers'
 import { useUserStore } from '@/stores/users'
 import supabase from '@/lib/Supabase'
 
+const ps = providersStore()
 const user = useUserStore()
 const props = defineProps<{ userAvatar?: string }>()
 const drawer = ref(true)
@@ -73,6 +74,21 @@ const handleFileUpload = async (event: Event) => {
 
   selectedImage.value = publicUrl
 }
+
+// Super admin nav visibility
+onMounted(async () => {
+  if (!user.isUserLoaded) {
+    await user.fetchUser()
+  }
+  if (ps.providers.length === 0) {
+    await ps.fetchProviders()
+  }
+})
+
+const isSuperAdmin = computed(() => {
+  const me = ps.providers.find((p) => p.id === user.user_id)
+  return !!me?.is_super_admin
+})
 </script>
 
 <template>
@@ -96,6 +112,14 @@ const handleFileUpload = async (event: Event) => {
           value="/admin"
           prepend-icon="mdi-view-dashboard"
           title="Dashboard"
+          color="primary"
+        />
+        <v-list-item
+          v-if="isSuperAdmin"
+          to="/super"
+          value="/super"
+          prepend-icon="mdi-shield-crown"
+          title="Navigate to Super Admin"
           color="primary"
         />
         <v-list-item

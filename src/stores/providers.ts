@@ -10,6 +10,7 @@ type Provider = {
   status: string
   rejection_reason?: string
   created_at?: string
+  is_super_admin?: boolean
 }
 
 type Rule = {
@@ -33,7 +34,7 @@ export const providersStore = defineStore('providers', () => {
     try {
       const { data, error } = await supabase
         .from('providers')
-        .select('id, agency_name, logo, status, rejection_reason, created_at')
+        .select('id, agency_name, logo, status, rejection_reason, created_at, is_super_admin')
         .order('created_at', { ascending: false })
       if (error) throw error
       providers.value = (data || []) as Provider[]
