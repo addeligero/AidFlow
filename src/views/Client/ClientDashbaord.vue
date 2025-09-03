@@ -1,14 +1,16 @@
 <template>
   <ClientLayout>
     <v-row justify="center">
-      <v-col cols="12" md="6">
+      <v-col cols="12">
         <br />
         <Carousel />
       </v-col>
-      <v-col cols="12" md="6">
+      <v-col cols="12">
         <hr />
         <br />
         <h3>Services</h3>
+
+        <IconSection />
         <IconSection />
       </v-col>
     </v-row>
