@@ -28,7 +28,7 @@ const displayLogo = computed(
 </script>
 <template>
   <AdminLayout>
-    <v-card class="mb-4 pa-4 d-flex align-center" rounded="lg" variant="tonal">
+    <v-card class="mb-4 pa-4 d-flex align-center border-md" rounded="lg" elevation="8">
       <v-avatar size="64" class="mr-4">
         <v-img :src="displayLogo" alt="Admin logo" cover />
       </v-avatar>

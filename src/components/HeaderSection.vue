@@ -76,7 +76,7 @@ const logoTextColor = computed(() =>
   </v-app-bar>
 </template>
 
-<style scoped>
+<style>
 .af-app-bar {
   backdrop-filter: blur(10px);
   transition:
