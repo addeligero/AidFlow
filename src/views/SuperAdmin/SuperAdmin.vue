@@ -197,7 +197,11 @@ function copyReason() {
       <v-row>
         <v-col cols="12" md="6">
           <v-card class="mb-4">
-            <v-card-title>Recent Provider Applications</v-card-title>
+            <v-card-title class="d-flex align-center">
+              <span>Recent Provider Applications</span>
+              <v-spacer />
+              <v-btn to="/super/providers" size="x-small" variant="text">view all</v-btn>
+            </v-card-title>
             <v-divider />
             <v-list>
               <v-list-item v-for="p in recentProviders" :key="p.id">

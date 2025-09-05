@@ -10,6 +10,7 @@ import { useUserStore } from '@/stores/users'
 import { providersStore } from '@/stores/providers'
 import MyRules from '@/views/admin/MyRules.vue'
 import SuperAdmin from '@/views/SuperAdmin/SuperAdmin.vue'
+import AllProviders from '@/views/SuperAdmin/AllProviders.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -64,7 +65,13 @@ const router = createRouter({
       path: '/super',
       name: 'Super Admin',
       component: SuperAdmin,
-      meta: { requiresAuth: true, requiresAdmin: true },
+      meta: { requiresAuth: true, requiresAdmin: true, requiresSuper: true },
+    },
+    {
+      path: '/super/providers',
+      name: 'All Providers',
+      component: AllProviders,
+      meta: { requiresAuth: true, requiresAdmin: true, requiresSuper: true },
     },
   ],
 })
@@ -107,6 +114,14 @@ router.beforeEach(async (to, from, next) => {
     if (!myProvider || myProvider.status !== 'approved') {
       console.warn('Access denied: User is not an approved provider')
       return next({ name: 'dashboard' })
+    }
+
+    // Super admin-only sections
+    if (to.meta.requiresSuper) {
+      if (!myProvider.is_super_admin) {
+        console.warn('Access denied: User is not a super admin')
+        return next({ name: 'dashboard' })
+      }
     }
   }
 
