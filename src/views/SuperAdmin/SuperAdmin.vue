@@ -3,6 +3,7 @@ import { onMounted, computed, ref } from 'vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import { providersStore } from '@/stores/providers'
 import supabase from '@/lib/Supabase'
+import SuperCard from './SuperCard.vue'
 
 const ps = providersStore()
 const users = ref<any[]>([])
@@ -183,22 +184,13 @@ function copyReason() {
 
       <v-row class="mb-6">
         <v-col cols="12" md="4">
-          <v-card color="primary" variant="tonal" class="pa-4">
-            <div class="text-h5 font-weight-bold">{{ totalUsers }}</div>
-            <div class="text-caption">Total Users</div>
-          </v-card>
+          <SuperCard color="lime-darken-3" :totalNumber="totalUsers" caption="Total Users" />
         </v-col>
         <v-col cols="12" md="4">
-          <v-card color="secondary" variant="tonal" class="pa-4">
-            <div class="text-h5 font-weight-bold">{{ totalProviders }}</div>
-            <div class="text-caption">Total Providers</div>
-          </v-card>
+          <SuperCard :totalNumber="totalProviders" caption="Total Providerss" />
         </v-col>
         <v-col cols="12" md="4">
-          <v-card color="success" variant="tonal" class="pa-4">
-            <div class="text-h5 font-weight-bold">{{ totalRules }}</div>
-            <div class="text-caption">Total Rules</div>
-          </v-card>
+          <SuperCard color="success" :totalNumber="totalRules" caption="Total Rules" />
         </v-col>
       </v-row>
 
