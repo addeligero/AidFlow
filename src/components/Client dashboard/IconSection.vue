@@ -1,24 +1,13 @@
-<template>
-  <v-card
-    class="mx-auto"
-    max-width="344"
-    title="Upload Image"
-    subtitle="Check your eligibility"
-    elevation="8"
-  >
-    <v-card-actions>
-      <v-btn @click="takePicture" prepend-icon="mdi-camera">Take Photo</v-btn>
-    </v-card-actions>
-
-    <v-img v-if="photo" :src="photo" height="200" class="mt-4" />
-  </v-card>
-</template>
-
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera'
 
-const photo = ref(null)
+defineProps<{
+  Title: string
+  Subtitle: string
+}>()
+
+const photo = ref<string | null>(null)
 
 const takePicture = async () => {
   try {
@@ -29,9 +18,19 @@ const takePicture = async () => {
       source: CameraSource.Camera,
     })
 
-    photo.value = image.dataUrl
+    photo.value = image.dataUrl ?? null
   } catch (error) {
     console.error('Camera error:', error)
   }
 }
 </script>
+
+<template>
+  <v-card class="mx-auto" max-width="344" :title="Title" :subtitle="Subtitle" elevation="8">
+    <v-card-actions>
+      <v-btn @click="takePicture" prepend-icon="mdi-camera">Take Photo</v-btn>
+    </v-card-actions>
+
+    <v-img v-if="photo" :src="photo" height="200" class="mt-4" />
+  </v-card>
+</template>
