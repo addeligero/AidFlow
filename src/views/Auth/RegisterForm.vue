@@ -25,7 +25,6 @@ const showDialog = ref(false)
 const failed = ref(false)
 const errorMessage = ref('')
 
-// Simple inline validation
 const allFilled = computed(
   () =>
     first_name.value &&

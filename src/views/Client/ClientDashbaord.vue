@@ -10,9 +10,9 @@
         <br />
         <h3>Services</h3>
 
-        <IconSection title="Service 1" subtitle="Description for Service 1" />
+        <IconSection Title="Service 1" Subtitle="Description for Service 1" />
         <br />
-        <IconSection title="Service 2" subtitle="Description for Service 2" />
+        <IconSection Title="Service 2" Subtitle="Description for Service 2" />
       </v-col>
     </v-row>
   </ClientLayout>
