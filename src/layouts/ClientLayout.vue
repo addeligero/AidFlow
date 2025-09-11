@@ -53,7 +53,7 @@ const shellClass = computed(() =>
 }
 
 .content-wrapper {
-  max-width: 1280px;
+  max-width: 1480px;
   margin: 0 auto;
   padding: 12px 4px;
   animation: fadeIn 0.4s ease;

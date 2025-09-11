@@ -1,36 +1,142 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera'
+import { ref, computed } from 'vue'
+import supabase from '@/lib/Supabase'
+import { useUserStore } from '@/stores/users'
 
-defineProps<{
-  Title: string
-  Subtitle: string
+type Rule = {
+  id: string
+  rule_name: string
+  conditions: Record<string, any>
+  subsidy_amount?: number
+  provider?: { agency_name?: string }
+}
+
+const props = defineProps<{
+  rule: Rule
+  Title?: string
+  Subtitle?: string
 }>()
 
-const photo = ref<string | null>(null)
+const userStore = useUserStore()
+if (!userStore.isUserLoaded) {
+  userStore.fetchUser()
+}
 
-const takePicture = async () => {
+// Derive requirements gikan sa conditions
+const requirements = computed(() => {
+  if (!props.rule?.conditions) return [] as string[]
+  return Object.keys(props.rule.conditions || {})
+})
+
+// Track uploads
+const uploads = ref<
+  Record<string, { name: string; url?: string; uploading: boolean; error?: string }>
+>({})
+
+const initRequirement = (req: string) => {
+  if (!uploads.value[req]) uploads.value[req] = { name: '', uploading: false }
+}
+
+const onFileChange = async (req: string, e: Event) => {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  initRequirement(req)
+  uploads.value[req].uploading = true
+  uploads.value[req].error = undefined
+  uploads.value[req].name = file.name
   try {
-    const image = await Camera.getPhoto({
-      quality: 90,
-      allowEditing: false,
-      resultType: CameraResultType.DataUrl,
-      source: CameraSource.Camera,
-    })
-
-    photo.value = image.dataUrl ?? null
-  } catch (error) {
-    console.error('Camera error:', error)
+    const ext = file.name.split('.').pop()
+    const path = `applications/${userStore.user_id || 'anon'}/${props.rule.id}/${req}-${Date.now()}.${ext}`
+    const { error } = await supabase.storage.from('app_docs').upload(path, file, { upsert: true })
+    if (error) throw error
+    const { data } = supabase.storage.from('app_docs').getPublicUrl(path)
+    uploads.value[req].url = data.publicUrl
+  } catch (err: any) {
+    uploads.value[req].error = err?.message || 'Upload failed'
+  } finally {
+    uploads.value[req].uploading = false
   }
 }
+
+const titleText = computed(() => props.Title || props.rule.rule_name)
+const subtitleText = computed(
+  () =>
+    props.Subtitle ||
+    (props.rule.provider?.agency_name
+      ? `Provided by ${props.rule.provider.agency_name}`
+      : 'Required Documents'),
+)
 </script>
 
 <template>
-  <v-card class="mx-auto" max-width="344" :title="Title" :subtitle="Subtitle" elevation="8">
-    <v-card-actions>
-      <v-btn @click="takePicture" prepend-icon="mdi-camera">Take Photo</v-btn>
+  <v-card class="mx-auto h-100 d-flex flex-column" elevation="8">
+    <v-card-title class="py-3">
+      <div class="text-subtitle-1 font-weight-medium">{{ titleText }}</div>
+      <div class="text-caption text-medium-emphasis">{{ subtitleText }}</div>
+    </v-card-title>
+    <v-divider />
+    <v-card-text class="flex-grow-1">
+      <div v-if="!requirements.length" class="text-caption text-medium-emphasis">
+        No requirements listed.
+      </div>
+      <v-list v-else density="compact" class="py-0">
+        <v-list-item v-for="req in requirements" :key="req" class="px-0">
+          <template #prepend>
+            <v-avatar size="28" color="primary" variant="tonal" class="me-2">
+              <v-icon size="18" icon="mdi-file-document" />
+            </v-avatar>
+          </template>
+          <v-list-item-title class="text-body-2">{{ req }}</v-list-item-title>
+          <template #append>
+            <div class="d-flex align-center ga-2">
+              <v-btn
+                size="x-small"
+                variant="tonal"
+                color="primary"
+                :loading="uploads[req]?.uploading"
+                @click="$refs[`input-${req}`][0].click()"
+              >
+                {{ uploads[req]?.url ? 'Replace' : 'Upload' }}
+              </v-btn>
+              <v-icon v-if="uploads[req]?.url" size="18" color="success" icon="mdi-check-circle" />
+            </div>
+            <input
+              class="d-none"
+              :ref="`input-${req}`"
+              type="file"
+              accept="image/*,application/pdf"
+              @change="onFileChange(req, $event)"
+            />
+          </template>
+          <v-list-item-subtitle v-if="uploads[req]?.name" class="text-caption mt-1">
+            <span v-if="uploads[req]?.error" class="text-error">{{ uploads[req].error }}</span>
+            <template v-else>
+              {{ uploads[req].name }}
+              <v-btn
+                v-if="uploads[req]?.url"
+                :href="uploads[req].url"
+                target="_blank"
+                size="x-small"
+                variant="text"
+                icon="mdi-open-in-new"
+              />
+            </template>
+          </v-list-item-subtitle>
+        </v-list-item>
+      </v-list>
+    </v-card-text>
+    <v-divider />
+    <v-card-actions class="py-3 justify-end">
+      <v-chip v-if="rule.subsidy_amount" size="x-small" color="primary" variant="tonal">
+        Subsidy: {{ rule.subsidy_amount }}
+      </v-chip>
     </v-card-actions>
-
-    <v-img v-if="photo" :src="photo" height="200" class="mt-4" />
   </v-card>
 </template>
+
+<style scoped>
+.ga-2 {
+  gap: 0.5rem;
+}
+</style>
