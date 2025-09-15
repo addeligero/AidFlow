@@ -73,7 +73,7 @@ async function fetchMyRules() {
 }
 
 onMounted(async () => {
-  await userStore.fetchUser()
+  if (!userStore.isUserLoaded) await userStore.fetchUser()
   await fetchProviderId()
   if (providerId.value) await fetchMyRules()
 

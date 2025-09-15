@@ -4,6 +4,7 @@ import { providersStore } from '@/stores/providers'
 import supabase from '@/lib/Supabase'
 import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { on } from 'events'
 
 const ps = providersStore()
 const route = useRoute()
@@ -54,8 +55,70 @@ const emit = defineEmits(['update:modelValue'])
 const showAvatarDialog = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const isUploading = ref(false)
+const isSavingDetails = ref(false)
+const editFirstName = ref('')
+const editLastName = ref('')
+const editEmail = ref('')
 
 const triggerFileInput = () => fileInput.value?.click()
+
+// Prefill editable fields when dialog opens
+watch(showAvatarDialog, async (open) => {
+  if (!open) return
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser()
+  if (!authUser) return
+  const { data, error } = await supabase
+    .from('users')
+    .select('first_name,last_name,email')
+    .eq('user_id', authUser.id)
+    .single()
+  if (!error && data) {
+    editFirstName.value = data.first_name || ''
+    editLastName.value = data.last_name || ''
+    editEmail.value = data.email || authUser.email || ''
+  } else {
+    editFirstName.value = authUser.user_metadata?.full_name?.split(' ')?.[0] || ''
+    editLastName.value = authUser.user_metadata?.full_name?.split(' ')?.slice(1).join(' ') || ''
+    editEmail.value = authUser.email || ''
+  }
+})
+
+const saveProfileDetails = async () => {
+  isSavingDetails.value = true
+  try {
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser()
+    if (!authUser) throw new Error('Not authenticated')
+
+    const updates: any = { data: { full_name: `${editFirstName.value} ${editLastName.value}` } }
+    if (editEmail.value && editEmail.value !== authUser.email) {
+      updates.email = editEmail.value
+    }
+    const { error: authErr } = await supabase.auth.updateUser(updates)
+    if (authErr) console.warn('Auth update warning:', authErr.message)
+
+    const { error: dbErr } = await supabase
+      .from('users')
+      .update({
+        first_name: editFirstName.value,
+        last_name: editLastName.value,
+        email: editEmail.value,
+      })
+      .eq('user_id', authUser.id)
+    if (dbErr) throw dbErr
+
+    // Refresh local store info
+    await userStore.fetchUser()
+    showAvatarDialog.value = false
+  } catch (e: any) {
+    console.error('Failed to save details:', e?.message || e)
+  } finally {
+    isSavingDetails.value = false
+  }
+}
 
 const logout = async () => {
   const { error } = await supabase.auth.signOut()
@@ -106,6 +169,7 @@ const handleFileUpload = async (event: Event) => {
   }
 
   userStore.userProfileImg = publicUrl
+  await userStore.fetchUser()
   isUploading.value = false
 }
 
@@ -133,7 +197,7 @@ const handleProviderAction = () => {
   <!-- Dialog for Avatar -->
   <v-dialog v-model="showAvatarDialog" max-width="400">
     <v-card>
-      <v-card-title class="text-h6">Update Profile Photo</v-card-title>
+      <v-card-title class="text-h6">Update Profile</v-card-title>
       <v-card-text class="d-flex flex-column align-center">
         <v-avatar size="150" class="mb-4">
           <template v-if="isUploading">
@@ -151,10 +215,32 @@ const handleProviderAction = () => {
           class="d-none"
           @change="handleFileUpload"
         />
+
+        <v-divider class="my-4" />
+        <v-text-field
+          v-model="editFirstName"
+          label="First name"
+          density="comfortable"
+          class="w-100"
+        />
+        <v-text-field
+          v-model="editLastName"
+          label="Last name"
+          density="comfortable"
+          class="w-100"
+        />
+        <v-text-field
+          v-model="editEmail"
+          label="Email"
+          type="email"
+          density="comfortable"
+          class="w-100"
+        />
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn text @click="showAvatarDialog = false">Close</v-btn>
+        <v-btn variant="text" @click="showAvatarDialog = false">Close</v-btn>
+        <v-btn color="primary" :loading="isSavingDetails" @click="saveProfileDetails">Save</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
