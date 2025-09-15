@@ -29,10 +29,6 @@ const refreshAll = async () => {
   await Promise.all([ps.fetchProviders(), ps.fetchRules(), fetchUsers()])
 }
 
-onMounted(() => {
-  refreshAll()
-})
-
 const totalUsers = computed(() => users.value.length)
 const totalProviders = computed(() => ps.providers.length)
 const totalRules = computed(() => ps.rules.length)
