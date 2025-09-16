@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import supabase from '@/lib/Supabase'
+
 import { useUserStore } from '@/stores/users'
 
 type Rule = {
@@ -28,35 +28,13 @@ const requirements = computed(() => {
   return Object.keys(props.rule.conditions || {})
 })
 
-// Track uploads
+// Track uploads per requirement
 const uploads = ref<
   Record<string, { name: string; url?: string; uploading: boolean; error?: string }>
 >({})
 
 const initRequirement = (req: string) => {
   if (!uploads.value[req]) uploads.value[req] = { name: '', uploading: false }
-}
-
-const onFileChange = async (req: string, e: Event) => {
-  const input = e.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-  initRequirement(req)
-  uploads.value[req].uploading = true
-  uploads.value[req].error = undefined
-  uploads.value[req].name = file.name
-  try {
-    const ext = file.name.split('.').pop()
-    const path = `applications/${userStore.user_id || 'anon'}/${props.rule.id}/${req}-${Date.now()}.${ext}`
-    const { error } = await supabase.storage.from('app_docs').upload(path, file, { upsert: true })
-    if (error) throw error
-    const { data } = supabase.storage.from('app_docs').getPublicUrl(path)
-    uploads.value[req].url = data.publicUrl
-  } catch (err: any) {
-    uploads.value[req].error = err?.message || 'Upload failed'
-  } finally {
-    uploads.value[req].uploading = false
-  }
 }
 
 const titleText = computed(() => props.Title || props.rule.rule_name)
@@ -67,6 +45,49 @@ const subtitleText = computed(
       ? `Provided by ${props.rule.provider.agency_name}`
       : 'Required Documents'),
 )
+
+// Handle file change + OCR API call
+const onFileChange = async (req: string, e: Event) => {
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  initRequirement(req)
+  uploads.value[req].name = file.name
+  uploads.value[req].uploading = true
+  uploads.value[req].error = undefined
+
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    // decide printed/handwritten dynamically if needed
+    fd.append('doc_type', 'printed')
+
+    // Call OCR API
+    const res = await fetch('http://localhost:5000/upload', {
+      method: 'POST',
+      body: fd,
+    })
+
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || res.statusText)
+
+    // You can attach OCR result if you want to display later
+    console.log(`OCR result for ${req}:`, data)
+
+    // (Optional) If you also want to store the file in Supabase
+    // const { data: uploadData, error } = await supabase.storage
+    //   .from('uploads')
+    //   .upload(`requirements/${req}-${Date.now()}-${file.name}`, file)
+    // if (error) throw error
+    // uploads.value[req].url = supabase.storage.from('uploads').getPublicUrl(uploadData.path).publicUrl
+  } catch (err: any) {
+    uploads.value[req].error = err.message
+    console.error(`Error OCR for ${req}:`, err)
+  } finally {
+    uploads.value[req].uploading = false
+  }
+}
 </script>
 
 <template>
