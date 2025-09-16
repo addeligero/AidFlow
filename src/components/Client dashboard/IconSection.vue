@@ -60,7 +60,7 @@ const onFileChange = async (req: string, e: Event) => {
   try {
     const fd = new FormData()
     fd.append('file', file)
-    // decide printed/handwritten dynamically if needed
+    // printed pa ang n aa
     fd.append('doc_type', 'printed')
 
     // Call OCR API
@@ -72,7 +72,7 @@ const onFileChange = async (req: string, e: Event) => {
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || res.statusText)
 
-    // You can attach OCR result if you want to display later
+    // OCR result
     console.log(`OCR result for ${req}:`, data)
 
     // (Optional) If you also want to store the file in Supabase

@@ -89,12 +89,28 @@ const isSuperAdmin = computed(() => {
   const me = ps.providers.find((p) => p.id === user.user_id)
   return !!me?.is_super_admin
 })
+
+// Logout handler
+const logout = async () => {
+  const { error } = await supabase.auth.signOut()
+  if (error) {
+    console.error('Logout failed:', error.message)
+    return
+  }
+  user.reset()
+  window.location.href = '/'
+}
 </script>
 
 <template>
   <v-layout style="height: 100vh">
     <!-- Drawer -->
-    <v-navigation-drawer v-model="drawer" app expand-on-hover>
+    <v-navigation-drawer
+      v-model="drawer"
+      app
+      expand-on-hover
+      class="drawer-root d-flex flex-column"
+    >
       <v-list>
         <v-list-item
           :prepend-avatar="selectedImage"
@@ -137,6 +153,17 @@ const isSuperAdmin = computed(() => {
           color="primary"
         />
       </v-list>
+
+      <!-- Fixed Logout Button -->
+      <v-btn
+        block
+        color="error"
+        class="logout-btn fixed-logout"
+        prepend-icon="mdi-logout"
+        @click="logout"
+      >
+        Logout
+      </v-btn>
     </v-navigation-drawer>
 
     <v-app-bar app flat>
@@ -182,3 +209,22 @@ const isSuperAdmin = computed(() => {
     </v-card>
   </v-dialog>
 </template>
+
+<style scoped>
+.drawer-root {
+  position: relative;
+}
+.logout-btn {
+  font-weight: bold;
+  color: white;
+  border-radius: 8px;
+  text-transform: uppercase;
+}
+.fixed-logout {
+  position: absolute;
+
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+}
+</style>
