@@ -3,6 +3,8 @@
     <v-container fluid>
       <v-row>
         <v-col cols="12" class="pb-0">
+          <br />
+          <h3 class="text-h6 text-md-h5 mb-0">Subsidy Providers</h3>
           <Carousel />
         </v-col>
         <v-col cols="12" class="pt-0">
