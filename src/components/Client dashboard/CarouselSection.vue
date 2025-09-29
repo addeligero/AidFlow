@@ -9,6 +9,15 @@ const model = ref<number | null>(0)
 const showHint = ref(true)
 const containerRef = ref<HTMLElement | null>(null)
 
+// Dialog state for provider details
+const showProviderDialog = ref(false)
+const selectedProvider = ref<any | null>(null)
+
+function openProviderDialog(provider: any) {
+  selectedProvider.value = provider
+  showProviderDialog.value = true
+}
+
 onMounted(() => {
   if (store.providers.length === 0) {
     store.fetchProviders()
@@ -142,7 +151,7 @@ watch(model, () => firstInteract())
             class="mx-3 my-4 border-sm rounded-lg"
             :elevation="isSelected ? 6 : 2"
             :variant="isSelected ? 'outlined' : 'flat'"
-            @click="(toggle(), firstInteract())"
+            @click="(toggle(), firstInteract(), openProviderDialog(provider))"
             :style="[
               {
                 width: '260px',
@@ -211,5 +220,73 @@ watch(model, () => firstInteract())
     >
       <v-progress-circular indeterminate color="primary" />
     </div>
+
+    <!-- Provider Details Dialog -->
+    <v-dialog v-model="showProviderDialog" max-width="640">
+      <v-card>
+        <v-card-title class="d-flex align-center">
+          <v-avatar size="48" class="me-3" rounded>
+            <v-img :src="selectedProvider?.logo" cover />
+          </v-avatar>
+          <div>
+            <div class="text-subtitle-1 font-weight-medium">
+              {{ selectedProvider?.agency_name || 'Service Provider' }}
+            </div>
+            <div class="text-caption text-medium-emphasis">Provider details</div>
+          </div>
+        </v-card-title>
+        <v-divider />
+        <v-card-text style="max-height: 60vh; overflow: auto">
+          <v-row class="mb-2">
+            <v-col cols="12" md="6">
+              <div class="d-flex align-center mb-2">
+                <v-icon size="18" class="me-2" icon="mdi-account-tie" />
+                <span class="text-body-2">
+                  {{ selectedProvider?.contact_person || 'Contact person not set' }}
+                </span>
+              </div>
+              <div class="d-flex align-center mb-2">
+                <v-icon size="18" class="me-2" icon="mdi-email" />
+                <span class="text-body-2">{{ selectedProvider?.agency_email || 'No email' }}</span>
+              </div>
+            </v-col>
+            <v-col cols="12" md="6">
+              <div class="d-flex align-center mb-2">
+                <v-icon size="18" class="me-2" icon="mdi-phone" />
+                <span class="text-body-2">{{ selectedProvider?.agency_num || 'No number' }}</span>
+              </div>
+              <div class="d-flex align-start mb-2">
+                <v-icon size="18" class="me-2 mt-0_5" icon="mdi-map-marker" />
+                <span class="text-body-2">{{
+                  selectedProvider?.office_address || 'No address'
+                }}</span>
+              </div>
+            </v-col>
+          </v-row>
+
+          <v-divider class="my-3" />
+          <div class="text-body-2">
+            <p class="mb-2 text-medium-emphasis">About</p>
+            <p>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque feugiat, tortor vel
+              fermentum hendrerit, arcu nibh lacinia mi, sed suscipit nisl purus id ipsum. In hac
+              habitasse platea dictumst. Curabitur consequat, ipsum ac convallis accumsan, velit
+              ligula varius justo, ut iaculis metus mi et nulla. Suspendisse potenti.
+            </p>
+          </div>
+        </v-card-text>
+        <v-divider />
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="showProviderDialog = false">Cancel</v-btn>
+          <v-btn
+            color="primary"
+            :to="selectedProvider ? `/rules?provider=${selectedProvider.id}` : '/rules'"
+          >
+            View Rules
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
