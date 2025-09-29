@@ -75,11 +75,9 @@ async function fetchMyRules() {
 
 onMounted(async () => {
   if (!userStore.isUserLoaded) await userStore.fetchUser()
-  await fetchProviderId()
-  if (providerId.value) await fetchMyRules()
 
-  // Realtime subscription for rules
   if (providerId.value) {
+    // Realtime subscription for rules
     channel.value = supabase
       .channel('rules-changes')
       .on(
