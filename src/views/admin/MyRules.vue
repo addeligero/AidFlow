@@ -4,6 +4,7 @@ import supabase from '@/lib/Supabase'
 import { useUserStore } from '@/stores/users'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import RulesCard from '@/components/Admin/RulesCard.vue'
+import { logAction } from '@/utils/logger'
 
 type MyRule = {
   id: string
@@ -173,6 +174,7 @@ function removeCond(i: number) {
 async function saveRule() {
   if (!providerId.value) return
   editorLoading.value = true
+
   try {
     if (!formName.value.trim()) throw new Error('Rule name is required')
     if (formConds.value.some((c) => !c.key)) throw new Error('Condition keys cannot be empty')
@@ -185,6 +187,7 @@ async function saveRule() {
     }
 
     if (isEdit.value && currentId.value) {
+      // 🔹 Update existing rule
       const { error } = await supabase
         .from('subsidy_rules')
         .update({
@@ -194,13 +197,27 @@ async function saveRule() {
         })
         .eq('id', currentId.value)
         .eq('provider_id', providerId.value)
+
       if (error) throw error
+
+      await logAction('ADMIN', 'Updated subsidy rule', `rule_id=${currentId.value}`)
       snackbar.value = { show: true, text: 'Rule updated', color: 'success' }
     } else {
-      const { error } = await supabase.from('subsidy_rules').insert([payload])
+      // 🔹 Insert new rule
+      const { data, error } = await supabase
+        .from('subsidy_rules')
+        .insert([payload])
+        .select('id') // return new rule id
+        .single()
+
       if (error) throw error
+
+      // Log the creation
+      await logAction('ADMIN', 'Created subsidy rule', `rule_id=${data.id}`)
+
       snackbar.value = { show: true, text: 'Rule created', color: 'success' }
     }
+
     editorOpen.value = false
     await refresh()
   } catch (e: any) {
