@@ -116,7 +116,7 @@ const onFileChange = async (req: string, e: Event) => {
                 variant="tonal"
                 color="primary"
                 :loading="uploads[req]?.uploading"
-                @click="$refs[`input-${req}`][0].click()"
+                @click="($refs[`input-${req}`] as HTMLInputElement[])[0].click()"
               >
                 {{ uploads[req]?.url ? 'Replace' : 'Upload' }}
               </v-btn>
