@@ -8,7 +8,7 @@ import ProviderApplication from '@/views/Auth/ProviderApplication.vue'
 import ViewRules from '@/views/Client/ViewRules.vue'
 import { useUserStore } from '@/stores/users'
 import { providersStore } from '@/stores/providers'
-import MyRules from '@/views/admin/MyRules.vue'
+import MyProgram from '@/views/admin/MyProgram.vue'
 import SuperAdmin from '@/views/SuperAdmin/SuperAdmin.vue'
 import AllProviders from '@/views/SuperAdmin/AllProviders.vue'
 const router = createRouter({
@@ -45,7 +45,7 @@ const router = createRouter({
     {
       path: '/add-rules',
       name: 'Provider Rules',
-      component: MyRules,
+      component: MyProgram,
       meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
@@ -58,7 +58,7 @@ const router = createRouter({
     {
       path: '/my-rules',
       name: 'My Rules',
-      component: MyRules,
+      component: MyProgram,
       meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
