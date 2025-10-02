@@ -9,7 +9,6 @@ const model = ref<number | null>(0)
 const showHint = ref(true)
 const containerRef = ref<HTMLElement | null>(null)
 
-// Dialog state for provider details
 const showProviderDialog = ref(false)
 const selectedProvider = ref<any | null>(null)
 

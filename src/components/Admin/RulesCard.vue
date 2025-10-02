@@ -73,7 +73,11 @@ function onCopy() {
       </div>
 
       <div v-if="totalRequirements" class="d-flex flex-column ga-3">
-        <div v-for="req in props.rule.requirements" :key="req.id" class="rounded pa-3 requirement-card">
+        <div
+          v-for="req in props.rule.requirements"
+          :key="req.id"
+          class="rounded pa-3 requirement-card"
+        >
           <div class="d-flex align-center mb-1">
             <v-icon size="18" color="primary" class="me-2">mdi-file-document</v-icon>
             <div class="text-body-2 font-weight-medium">{{ req.name }}</div>
