@@ -41,27 +41,11 @@ function scrollPrev() {
   if (model.value && model.value > 0) model.value--
 }
 
-function onWheel(e: WheelEvent) {
-  if (!store.providers.length) return
-
-  if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-    e.preventDefault()
-    if (e.deltaY > 0) scrollNext()
-    else scrollPrev()
-  }
-}
-
-// Watch model for interactions
 watch(model, () => firstInteract())
 </script>
 
 <template>
-  <div
-    class="position-relative overflow-hidden px-2"
-    ref="containerRef"
-    @wheel.passive="onWheel"
-    style="max-width: 100%"
-  >
+  <div class="position-relative overflow-hidden px-2" ref="containerRef" style="max-width: 100%">
     <div
       v-if="(model || 0) > 0"
       class="position-absolute top-0 left-0"
