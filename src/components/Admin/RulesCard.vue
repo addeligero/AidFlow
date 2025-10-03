@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+type RequirementExtra = Record<string, any> | null
+
 type Requirement = {
   id: string
   name: string
-  field_key: string
-  operator: string
-  value: string
+  type: 'document' | 'condition'
+  field_key?: string | null
+  operator?: string | null
+  value?: string | null
   description?: string | null
+  extra?: RequirementExtra
 }
 
 type Rule = {
@@ -34,6 +38,45 @@ const emit = defineEmits<{
 }>()
 
 const totalRequirements = computed(() => props.rule.requirements?.length || 0)
+
+const operatorLabels: Record<string, string> = {
+  equals: 'Equals',
+  not_equals: 'Not Equals',
+  greater_than: 'Greater Than',
+  greater_or_equal: 'Greater or Equal',
+  less_than: 'Less Than',
+  less_or_equal: 'Less or Equal',
+  contains: 'Contains',
+}
+
+const formatOperator = (operator?: string | null) => {
+  if (!operator) return ''
+  return operatorLabels[operator] || operator.replace(/_/g, ' ')
+}
+
+const extractRequirementNote = (extra?: RequirementExtra) => {
+  if (!extra) return null
+  if (typeof extra === 'string') return extra
+  if (typeof extra === 'object') {
+    const candidate = extra.note || extra.instructions || extra.details || extra.detail
+    if (candidate) return String(candidate)
+  }
+  try {
+    return JSON.stringify(extra)
+  } catch (e) {
+    return null
+  }
+}
+
+const requirementDetails = (req: Requirement) => {
+  if (req.type === 'document') {
+    return req.description?.trim() || extractRequirementNote(req.extra) || 'Provide this document.'
+  }
+  const field = req.field_key?.trim() || 'value'
+  const operator = formatOperator(req.operator)
+  const value = (req.value ?? '').toString().trim()
+  return [field, operator, value].filter(Boolean).join(' ').trim()
+}
 
 function onEdit() {
   emit('edit', props.rule)
@@ -78,16 +121,29 @@ function onCopy() {
           :key="req.id"
           class="rounded pa-3 requirement-card"
         >
-          <div class="d-flex align-center mb-1">
-            <v-icon size="18" color="primary" class="me-2">mdi-file-document</v-icon>
-            <div class="text-body-2 font-weight-medium">{{ req.name }}</div>
+          <div class="d-flex align-center justify-space-between mb-2">
+            <div class="d-flex align-center">
+              <v-icon size="18" color="primary" class="me-2">
+                {{ req.type === 'document' ? 'mdi-file-document' : 'mdi-tune-variant' }}
+              </v-icon>
+              <div class="text-body-2 font-weight-medium">{{ req.name }}</div>
+            </div>
+            <v-chip size="x-small" variant="outlined" color="primary">
+              {{ req.type === 'document' ? 'Document' : 'Condition' }}
+            </v-chip>
           </div>
           <div class="text-caption text-medium-emphasis">
-            {{ req.field_key }}
-            <strong>{{ ' ' + req.operator + ' ' }}</strong>
-            {{ req.value }}
+            {{ requirementDetails(req) }}
           </div>
-          <div v-if="req.description" class="text-caption mt-1">{{ req.description }}</div>
+          <div v-if="req.type === 'condition' && req.description" class="text-caption mt-1">
+            {{ req.description }}
+          </div>
+          <div
+            v-if="req.type === 'document' && extractRequirementNote(req.extra)"
+            class="text-caption mt-1"
+          >
+            {{ extractRequirementNote(req.extra) }}
+          </div>
         </div>
       </div>
       <div v-else class="text-caption text-medium-emphasis">
