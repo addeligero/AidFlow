@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-type RequirementExtra = Record<string, any> | null
+type RequirementExtra = Record<string, any> | string | null
 
 type Requirement = {
   id: string
