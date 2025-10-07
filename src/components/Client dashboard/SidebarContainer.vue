@@ -4,8 +4,8 @@ import { providersStore } from '@/stores/providers'
 import supabase from '@/lib/Supabase'
 import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { on } from 'events'
 
+const noimage = '@/assets/noimage.png'
 const ps = providersStore()
 const route = useRoute()
 const router = useRouter()
@@ -268,7 +268,7 @@ const handleProviderAction = () => {
 
       <v-list-item
         v-else
-        prepend-avatar="https://randomuser.me/api/portraits/men/78.jpg"
+        :prepend-avatar="noimage"
         title="Loading..."
         @click="showAvatarDialog = true"
       />
