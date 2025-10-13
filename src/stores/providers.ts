@@ -12,7 +12,7 @@ type Provider = {
   rejection_reason?: string
   created_at?: string
   is_super_admin?: boolean
-  contact_person?: string
+  program?: string
   agency_email?: string
   agency_num?: string
   office_address?: string
@@ -59,7 +59,7 @@ export const providersStore = defineStore('providers', () => {
       const { data, error } = await supabase
         .from('providers')
         .select(
-          'id, agency_name, logo, status, rejection_reason, created_at, is_super_admin, contact_person,agency_email, agency_num, office_address',
+          'id, agency_name, logo, status, rejection_reason, created_at, is_super_admin, program,agency_email, agency_num, office_address',
         )
         .order('created_at', { ascending: false })
       if (error) throw error

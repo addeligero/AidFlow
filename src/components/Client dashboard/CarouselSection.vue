@@ -171,9 +171,11 @@ watch(model, () => firstInteract())
               </v-avatar>
               <div class="text-truncate">
                 <h4 class="mb-1 text-subtitle-1 font-weight-medium text-truncate">
-                  {{ provider.agency_name }}
+                  {{ provider.program }}
                 </h4>
-                <div class="text-caption text-medium-emphasis">Service Provider</div>
+                <div class="text-caption text-medium-emphasis">
+                  under {{ provider?.agency_name || 'No program yet' }}
+                </div>
               </div>
             </div>
             <v-divider />
@@ -215,7 +217,9 @@ watch(model, () => firstInteract())
             <div class="text-subtitle-1 font-weight-medium">
               {{ selectedProvider?.agency_name || 'Service Provider' }}
             </div>
-            <div class="text-caption text-medium-emphasis">Provider details</div>
+            <div class="text-caption text-medium-emphasis">
+              {{ selectedProvider?.contact_person }}
+            </div>
           </div>
         </v-card-title>
         <v-divider />
@@ -225,7 +229,7 @@ watch(model, () => firstInteract())
               <div class="d-flex align-center mb-2">
                 <v-icon size="18" class="me-2" icon="mdi-account-tie" />
                 <span class="text-body-2">
-                  {{ selectedProvider?.contact_person || 'Contact person not set' }}
+                  {{ selectedProvider?.program || 'program not set' }}
                 </span>
               </div>
               <div class="d-flex align-center mb-2">
