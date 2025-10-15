@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, type ComponentPublicInstance } from 'vue'
 
-import { useUserStore } from '@/stores/users'
+import { useUserStore } from '../../stores/users'
+
+type ProviderMini = { program?: string; agency_name?: string; name?: string }
 
 type Rule = {
   id: string
   rule_name: string
-  conditions: Record<string, any>
+  conditions: Record<string, unknown>
   subsidy_amount?: number
-  provider?: { agency_name?: string }
+  provider?: ProviderMini
 }
 
 const props = defineProps<{
@@ -33,18 +35,27 @@ const uploads = ref<
   Record<string, { name: string; url?: string; uploading: boolean; error?: string }>
 >({})
 
+// Map of file input refs per requirement key
+const fileInputRefs = ref<Record<string, HTMLInputElement | null>>({})
+
+const setFileInputRef = (req: string, el: Element | ComponentPublicInstance | null) => {
+  fileInputRefs.value[req] = (el as HTMLInputElement) || null
+}
+
 const initRequirement = (req: string) => {
   if (!uploads.value[req]) uploads.value[req] = { name: '', uploading: false }
 }
 
 const titleText = computed(() => props.Title || props.rule.rule_name)
-const subtitleText = computed(
-  () =>
-    props.Subtitle ||
-    (props.rule.provider?.agency_name
-      ? `Provided by ${props.rule.provider.agency_name}`
-      : 'Required Documents'),
-)
+const subtitleText = computed(() => {
+  if (props.Subtitle) return props.Subtitle
+  const provider = props.rule.provider
+  const program = provider?.program
+  const agency = provider?.agency_name || provider?.name
+  if (program && String(program).trim().length) return `Provided by ${program}`
+  if (agency && String(agency).trim().length) return `Provided by ${agency}`
+  return 'Required Documents'
+})
 
 // Handle file change + OCR API call
 const onFileChange = async (req: string, e: Event) => {
@@ -81,9 +92,10 @@ const onFileChange = async (req: string, e: Event) => {
     //   .upload(`requirements/${req}-${Date.now()}-${file.name}`, file)
     // if (error) throw error
     // uploads.value[req].url = supabase.storage.from('uploads').getPublicUrl(uploadData.path).publicUrl
-  } catch (err: any) {
-    uploads.value[req].error = err.message
-    console.error(`Error OCR for ${req}:`, err)
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    uploads.value[req].error = message
+    console.error(`Error OCR for ${req}:`, message)
   } finally {
     uploads.value[req].uploading = false
   }
@@ -116,7 +128,7 @@ const onFileChange = async (req: string, e: Event) => {
                 variant="tonal"
                 color="primary"
                 :loading="uploads[req]?.uploading"
-                @click="($refs[`input-${req}`] as HTMLInputElement[])[0].click()"
+                @click="() => fileInputRefs[req]?.click()"
               >
                 {{ uploads[req]?.url ? 'Replace' : 'Upload' }}
               </v-btn>
@@ -124,7 +136,7 @@ const onFileChange = async (req: string, e: Event) => {
             </div>
             <input
               class="d-none"
-              :ref="`input-${req}`"
+              :ref="(el) => setFileInputRef(req, el)"
               type="file"
               accept="image/*,application/pdf"
               @change="onFileChange(req, $event)"

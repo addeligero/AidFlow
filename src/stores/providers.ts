@@ -5,7 +5,6 @@ import defaultlogo from '@/assets/img/logo/defaultlogo.jp.jpg'
 
 type Provider = {
   id: string
-
   agency_name: string
   logo?: string
   status: string
@@ -18,7 +17,7 @@ type Provider = {
   office_address?: string
 }
 
-type RequirementExtra = Record<string, any> | string | null
+type RequirementExtra = Record<string, unknown> | string | null
 
 type RuleRequirement = {
   id: string
@@ -41,10 +40,12 @@ type Rule = {
   created_at?: string
   conditions: Record<string, string>
   requirements: RuleRequirement[]
+  program?: string
   provider: {
     agency_name: string
     logo?: string
     status?: string
+    program?: string
   }
 }
 
@@ -64,8 +65,9 @@ export const providersStore = defineStore('providers', () => {
         .order('created_at', { ascending: false })
       if (error) throw error
       providers.value = (data || []) as Provider[]
-    } catch (e) {
-      console.error('Failed to fetch providers:', (e as any)?.message || e)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e)
+      console.error('Failed to fetch providers:', message)
       providers.value = []
     } finally {
       providersLoading.value = false
@@ -92,12 +94,12 @@ export const providersStore = defineStore('providers', () => {
       try {
         const parsed = JSON.parse(raw)
         return typeof parsed === 'object' && parsed !== null ? parsed : null
-      } catch (error) {
+      } catch {
         return raw
       }
     }
     if (typeof raw === 'object') {
-      return raw as Record<string, any>
+      return raw as Record<string, unknown>
     }
     return null
   }
@@ -109,12 +111,12 @@ export const providersStore = defineStore('providers', () => {
     if (candidate) return String(candidate)
     try {
       return JSON.stringify(extra)
-    } catch (e) {
+    } catch {
       return null
     }
   }
 
-  const summarizeRequirement = (requirement: RuleRequirement, index: number) => {
+  const summarizeRequirement = (requirement: RuleRequirement) => {
     if (requirement.type === 'document') {
       return (
         requirement.description?.trim() ||
@@ -157,60 +159,67 @@ export const providersStore = defineStore('providers', () => {
         return acc
       }, {})
 
-      rules.value = (data || []).map((row: any) => {
-        const requirementRows = ((row.rule_requirements as any[]) || [])
+      const rows = (data ?? []) as Array<Record<string, unknown>>
+
+      rules.value = rows.map((row) => {
+        const ruleRequirements =
+          (row.rule_requirements as Array<Record<string, unknown>> | null | undefined) ?? []
+
+        const requirementRows: RuleRequirement[] = ruleRequirements
           .map((link) => {
-            const req = link?.requirement
+            const req = link?.requirement as Record<string, unknown> | undefined
             if (!req) return null
-            const extra = parseRequirementExtra(req.extra)
+            const extra = parseRequirementExtra(req.extra as unknown)
             return {
-              id: String(req.id),
-              name: req.name,
-              type: (req.type as 'document' | 'condition') ?? 'document',
-              field_key: req.field_key,
-              operator: req.operator,
-              value: req.value,
-              description: req.description,
+              id: String(req.id as string | number),
+              name: (req.name as string) ?? '',
+              type: (req.type as string as 'document' | 'condition') ?? 'document',
+              field_key: (req.field_key as string | null) ?? null,
+              operator: (req.operator as string | null) ?? null,
+              value: (req.value as string | null) ?? null,
+              description: (req.description as string | null) ?? null,
               extra,
             } as RuleRequirement
           })
-          .filter(Boolean) as RuleRequirement[]
+          .filter((x): x is RuleRequirement => x !== null)
 
         const conditions = requirementRows.reduce<Record<string, string>>(
-          (acc, requirement, index) => {
+          (acc, requirement: RuleRequirement) => {
             const prefix = requirement.type === 'document' ? 'Document' : 'Condition'
-            const label = `${prefix}: ${requirement.name?.trim() || `Requirement ${index + 1}`}`
-            acc[label] = summarizeRequirement(requirement, index)
+            const label = `${prefix}: ${requirement.name?.trim() || 'Requirement'}`
+            acc[label] = summarizeRequirement(requirement)
             return acc
           },
           {},
         )
 
-        const providerIdKey = String(row.provider_id)
+        const providerIdKey = String(row.provider_id as string | number)
         const providerEntry = providerMap[providerIdKey] || null
 
         return {
-          id: String(row.id),
-          rule_name: row.rule_name,
-          description: row.description,
-          classification: row.classification,
+          id: String(row.id as string | number),
+          rule_name: (row.rule_name as string) ?? '',
+          description: (row.description as string | null | undefined) ?? null,
+          classification: (row.classification as string | null | undefined) ?? null,
           subsidy_amount:
             row.subsidy_amount !== null && row.subsidy_amount !== undefined
-              ? Number(row.subsidy_amount)
+              ? Number(row.subsidy_amount as number)
               : undefined,
           provider_id: providerIdKey,
-          created_at: row.created_at,
+          created_at: row.created_at as string | undefined,
           conditions,
           requirements: requirementRows,
           provider: {
             agency_name: providerEntry?.agency_name || 'Unknown Provider',
             logo: providerEntry?.logo || defaultlogo,
             status: providerEntry?.status,
+            program: providerEntry?.program,
           },
         }
       })
-    } catch (error) {
-      console.error('Error fetching rules:', (error as any)?.message || error)
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.error('Error fetching rules:', message)
       rules.value = []
     } finally {
       rulesLoading.value = false
