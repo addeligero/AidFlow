@@ -5,7 +5,7 @@ import Dashboard from '@/views/Client/ClientDashbaord.vue'
 import supabase from '@/lib/Supabase'
 import AdminDashboard from '@/views/admin/AdminDashboard.vue'
 import ProviderApplication from '@/views/Auth/ProviderApplication.vue'
-import ViewRules from '@/views/Client/ViewRules.vue'
+import ViewPrograms from '@/views/Client/ViewPrograms.vue'
 import { useUserStore } from '@/stores/users'
 import { providersStore } from '@/stores/providers'
 import MyProgram from '@/views/admin/MyProgram.vue'
@@ -49,9 +49,9 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
-      path: '/rules',
-      name: 'View Rules',
-      component: ViewRules,
+      path: '/programs',
+      name: 'View Programs',
+      component: ViewPrograms,
       meta: { requiresAuth: true },
     },
 

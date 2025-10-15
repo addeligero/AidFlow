@@ -10,7 +10,7 @@
         <v-col cols="12" class="pt-0">
           <v-divider class="my-6" />
           <div class="d-flex align-center mb-4">
-            <h3 class="text-h6 text-md-h5 mb-0">Available Subsidy Requirements</h3>
+            <h3 class="text-h6 text-md-h5 mb-0">Programs and Requirements</h3>
             <v-spacer />
             <v-btn size="small" variant="text" prepend-icon="mdi-refresh" @click="refreshRules">
               Refresh
@@ -25,7 +25,7 @@
             </v-col>
             <v-col v-if="!rulesLoading && !rules.length" cols="12" class="text-center py-8">
               <v-icon size="40" class="mb-2" color="primary" icon="mdi-file-search-outline" />
-              <div class="text-body-2 text-medium-emphasis">No subsidy rules available yet.</div>
+              <div class="text-body-2 text-medium-emphasis">No subsidy programs available yet.</div>
             </v-col>
           </v-row>
         </v-col>

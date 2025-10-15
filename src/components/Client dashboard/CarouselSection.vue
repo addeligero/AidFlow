@@ -186,9 +186,10 @@ watch(model, () => firstInteract())
                 size="small"
                 append-icon="mdi-arrow-right"
                 class="ms-n2"
-                to="/rules"
+                @click.stop
+                to="/programs"
               >
-                View Rules
+                View Programs
               </v-btn>
               <v-spacer />
             </div>
