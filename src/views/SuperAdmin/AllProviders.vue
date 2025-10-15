@@ -13,7 +13,7 @@ const headers = [
   { title: 'Agency', key: 'agency_name' },
   { title: 'Status', key: 'status' },
   { title: 'Created', key: 'created_at' },
-  { title: 'Contact', key: 'contact_person' },
+  { title: 'Program', key: 'program' },
   { title: 'Agency Email', key: 'agency_email' },
   { title: 'Agency Number', key: 'agency_number' },
   { title: 'Office Address', key: 'office_address' },
@@ -39,7 +39,7 @@ const loading = computed(() => (ps as any).providersLoading || false)
               <th class="text-left">Agency</th>
               <th class="text-left">Status</th>
               <th class="text-left">Created</th>
-              <th class="text-left">Contact</th>
+              <th class="text-left">Program</th>
               <th class="text-left">Agency Email</th>
               <th class="text-left">Agency Number</th>
               <th class="text-left">Office Address</th>
@@ -73,7 +73,7 @@ const loading = computed(() => (ps as any).providersLoading || false)
                 <span class="text-caption">{{ p.created_at || '—' }}</span>
               </td>
               <td>
-                <span class="text-caption">{{ p.contact_person || '—' }}</span>
+                <span class="text-caption">{{ p.program || '—' }}</span>
               </td>
               <td>
                 <span class="text-caption">{{ p.agency_email || '—' }}</span>

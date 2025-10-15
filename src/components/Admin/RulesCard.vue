@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-type RequirementExtra = Record<string, any> | null
+type RequirementExtra = Record<string, unknown> | string | null
 
 type Requirement = {
   id: string
@@ -18,10 +18,11 @@ type Rule = {
   id: string
   rule_name: string
   description?: string | null
-  subsidy_amount: number | null
+  subsidy_amount?: number | null
   classification?: string | null
   created_at?: string
   requirements: Requirement[]
+  conditions?: Record<string, string>
 }
 
 const props = defineProps<{
@@ -63,7 +64,7 @@ const extractRequirementNote = (extra?: RequirementExtra) => {
   }
   try {
     return JSON.stringify(extra)
-  } catch (e) {
+  } catch {
     return null
   }
 }
