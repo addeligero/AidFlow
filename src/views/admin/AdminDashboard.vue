@@ -22,7 +22,8 @@ const currentProvider = computed(() => {
   return provStore.providers.find((p) => String(p.id) === String(uid)) || null
 })
 
-const displayName = computed(() => currentProvider.value?.agency_name || userStore.userFullName)
+const displayName = computed(() => currentProvider.value?.program || userStore.userFullName)
+const displayAgency = computed(() => currentProvider.value?.agency_name || userStore.userFullName)
 const displayLogo = computed(() => currentProvider.value?.logo || (defaultlogo as string))
 
 // Edit dialog state
@@ -96,7 +97,7 @@ const saveEdits = async () => {
         </v-avatar>
         <div>
           <h2 class="text-h6 text-md-h5 mb-1">{{ displayName }}</h2>
-          <div class="text-caption text-medium-emphasis">Admin dashboard</div>
+          <div class="text-caption text-medium-emphasis">under {{ displayAgency }}</div>
         </div>
       </div>
       <v-btn
@@ -113,10 +114,10 @@ const saveEdits = async () => {
     <hr />
     <br />
     <AdminCard
-      title="Rules"
+      title="Programs"
       subHeader="Empower Your Community"
       shortStatement="Click below to add or update your community guidelines."
-      buttonText="View Rules Here"
+      buttonText="View Programs Here"
     />
   </AdminLayout>
 
