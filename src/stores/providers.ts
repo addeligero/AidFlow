@@ -42,10 +42,10 @@ type Rule = {
   requirements: RuleRequirement[]
   program?: string
   provider: {
+    program: string
     agency_name: string
     logo?: string
     status?: string
-    program: string
   }
 }
 
@@ -213,7 +213,8 @@ export const providersStore = defineStore('providers', () => {
             agency_name: providerEntry?.agency_name || 'Unknown Provider',
             logo: providerEntry?.logo || defaultlogo,
             status: providerEntry?.status,
-            program: providerEntry?.program,
+
+            program: providerEntry?.program ?? '',
           },
         }
       })
