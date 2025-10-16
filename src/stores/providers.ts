@@ -45,7 +45,7 @@ type Rule = {
     agency_name: string
     logo?: string
     status?: string
-    program?: string
+    program: string
   }
 }
 

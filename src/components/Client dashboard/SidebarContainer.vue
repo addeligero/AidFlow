@@ -293,11 +293,11 @@ const handleProviderAction = () => {
         </RouterLink>
 
         <!-- View Rules -->
-        <RouterLink to="/rules" custom v-slot="{ navigate }">
+        <RouterLink to="/programs" custom v-slot="{ navigate }">
           <v-list-item
             prepend-icon="mdi-forum"
-            title="View Rules"
-            :active="route.path === '/rules'"
+            title="View Programs"
+            :active="route.path === '/programs'"
             @click="
               () => {
                 emit('update:modelValue', false)

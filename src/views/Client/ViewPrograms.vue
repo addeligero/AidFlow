@@ -23,6 +23,7 @@ const filteredRules = computed(() => {
     (r) =>
       r.rule_name.toLowerCase().includes(q) ||
       r.provider.agency_name.toLowerCase().includes(q) ||
+      r.provider.program.toLowerCase().includes(q) ||
       Object.keys(r.conditions || {}).some((k) => k.toLowerCase().includes(q)),
   )
 })
@@ -54,7 +55,7 @@ function copyRule(rule: any) {
       <!-- Header -->
       <v-row class="align-center mb-4" no-gutters>
         <v-col cols="12" md="6" class="d-flex align-center mb-2 mb-md-0">
-          <h2 class="text-h5 font-weight-medium me-3">Subsidy Rules</h2>
+          <h2 class="text-h5 font-weight-medium me-3">Subsidy Programs</h2>
           <v-chip size="small" color="primary" variant="flat">
             {{ store.rules.length }} total
           </v-chip>
@@ -93,7 +94,7 @@ function copyRule(rule: any) {
 
               <v-card-title>{{ rule.rule_name }}</v-card-title>
               <v-card-subtitle>
-                <span class="me-2">{{ rule.provider.agency_name }}</span>
+                <span class="me-2">{{ rule.provider.program }}</span>
                 <v-chip size="x-small" color="primary" variant="flat" class="me-2">
                   ₱ {{ rule.subsidy_amount ?? '—' }}
                 </v-chip>
