@@ -1,27 +1,10 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
-// @ts-ignore - Pinia alias resolution within SFC context
+import { ref, watch, onMounted, defineAsyncComponent } from 'vue'
 import { useUserStore } from '../../stores/users'
-// @ts-ignore - Vue SFC module resolution
-import AdminLayout from '../../layouts/AdminLayout.vue'
-// @ts-ignore - Vue SFC module resolution
-import RequirementManager from '../../components/Admin/RequirementManager.vue'
-// @ts-ignore - Vue SFC module resolution
-import RuleManager from '../../components/Admin/RuleManager.vue'
-
-type RequirementExtra = Record<string, any> | string | null
-
-type Requirement = {
-  id: string
-  name: string
-  type: 'document' | 'condition'
-  field_key?: string | null
-  operator?: string | null
-  value?: string | null
-  description?: string | null
-  extra?: RequirementExtra
-  created_at?: string
-}
+const AdminLayout = defineAsyncComponent(() => import('../../layouts/AdminLayout.vue'))
+const ProgramManager = defineAsyncComponent(
+  () => import('../../components/Admin/ProgramManager.vue'),
+)
 
 const userStore = useUserStore()
 const providerId = ref<string | null>(null)
@@ -32,10 +15,7 @@ const snackbar = ref<{ show: boolean; text: string; color: string }>({
   color: 'success',
 })
 
-const requirementManagerRef = ref<InstanceType<typeof RequirementManager> | null>(null)
-const ruleManagerRef = ref<InstanceType<typeof RuleManager> | null>(null)
-
-const requirements = ref<Requirement[]>([])
+const programManagerRef = ref<{ refresh?: () => Promise<void> } | null>(null)
 
 function notify(payload: { text: string; color?: string }) {
   snackbar.value = {
@@ -45,13 +25,8 @@ function notify(payload: { text: string; color?: string }) {
   }
 }
 
-function handleRequirementsLoaded(list: Requirement[]) {
-  requirements.value = list
-}
-
 function refresh() {
-  requirementManagerRef.value?.refresh?.()
-  ruleManagerRef.value?.refresh?.()
+  programManagerRef.value?.refresh?.()
 }
 
 watch(
@@ -80,7 +55,7 @@ onMounted(async () => {
         <div>
           <h2 class="text-h6 text-md-h5 mb-1">My Subsidy Programs</h2>
           <p class="text-caption text-medium-emphasis mb-0">
-            Manage reusable requirements and bundle them into rules for your applicants.
+            Manage your programs with their requirements and rules in one place.
           </p>
         </div>
         <v-spacer />
@@ -95,19 +70,7 @@ onMounted(async () => {
         </v-btn>
       </div>
 
-      <RequirementManager
-        ref="requirementManagerRef"
-        :provider-id="providerId"
-        @notify="notify"
-        @requirements-loaded="handleRequirementsLoaded"
-      />
-
-      <RuleManager
-        ref="ruleManagerRef"
-        :provider-id="providerId"
-        :requirements="requirements"
-        @notify="notify"
-      />
+      <ProgramManager ref="programManagerRef" :provider-id="providerId" @notify="notify" />
     </v-container>
 
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="2500">
