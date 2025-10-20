@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import { providersStore } from '@/stores/providers'
+import { onMounted, computed, defineAsyncComponent } from 'vue'
+const AdminLayout = defineAsyncComponent(() => import('../../layouts/AdminLayout.vue'))
+import { providersStore } from '../../stores/providers'
 
 const ps = providersStore()
 
@@ -20,7 +20,7 @@ const headers = [
 ]
 
 const items = computed(() => ps.providers)
-const loading = computed(() => (ps as any).providersLoading || false)
+const loading = computed(() => Boolean((ps as unknown as { providersLoading?: boolean }).providersLoading))
 </script>
 
 <template>

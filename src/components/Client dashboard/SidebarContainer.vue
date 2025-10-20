@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useUserStore } from '@/stores/users'
-import { providersStore } from '@/stores/providers'
-import supabase from '@/lib/Supabase'
+import { useUserStore } from '../../stores/users'
+import { providersStore } from '../../stores/providers'
+import supabase from '../../lib/Supabase'
 import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -15,14 +15,15 @@ const status = ref<'approved' | 'pending' | 'rejected' | 'not a provider'>('not 
 const showPendingDialog = ref(false)
 const showRejectedDialog = ref(false)
 
-const channel = ref<any | null>(null)
+import type { RealtimeChannel } from '@supabase/supabase-js'
+const channel = ref<RealtimeChannel | null>(null)
 
 onMounted(async () => {
   if (!userStore.isUserLoaded) await userStore.fetchUser()
   if (ps.providers.length === 0) await ps.fetchProviders()
 
   const myProvider = ps.providers.find((p) => p.id === userStore.user_id)
-  status.value = myProvider ? (myProvider.status as any) : 'not a provider'
+  status.value = myProvider ? (myProvider.status as 'approved' | 'pending' | 'rejected') : 'not a provider'
 
   channel.value = supabase
     .channel('provider-status')
@@ -36,7 +37,7 @@ onMounted(async () => {
       },
       (payload) => {
         const updatedStatus = payload.new.status
-        status.value = updatedStatus as any
+  status.value = (updatedStatus as 'approved' | 'pending' | 'rejected')
         console.log('Provider status updated:', updatedStatus)
       },
     )
@@ -45,7 +46,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   if (channel.value) {
-    supabase.removeChannel(channel.value)
+    channel.value.unsubscribe()
   }
 })
 
@@ -93,7 +94,9 @@ const saveProfileDetails = async () => {
     } = await supabase.auth.getUser()
     if (!authUser) throw new Error('Not authenticated')
 
-    const updates: any = { data: { full_name: `${editFirstName.value} ${editLastName.value}` } }
+    const updates: { data: { full_name: string }; email?: string } = {
+      data: { full_name: `${editFirstName.value} ${editLastName.value}` },
+    }
     if (editEmail.value && editEmail.value !== authUser.email) {
       updates.email = editEmail.value
     }
@@ -113,8 +116,9 @@ const saveProfileDetails = async () => {
     // Refresh local store info
     await userStore.fetchUser()
     showAvatarDialog.value = false
-  } catch (e: any) {
-    console.error('Failed to save details:', e?.message || e)
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('Failed to save details:', msg)
   } finally {
     isSavingDetails.value = false
   }

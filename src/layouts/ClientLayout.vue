@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
-import Sidebar from '@/components/Client dashboard/SidebarContainer.vue'
-import Header from '@/components/HeaderSection.vue'
-import { useUserStore } from '@/stores/users'
+import { onMounted, ref, computed, defineAsyncComponent } from 'vue'
+const Sidebar = defineAsyncComponent(() => import('../components/Client dashboard/SidebarContainer.vue'))
+const Header = defineAsyncComponent(() => import('../components/HeaderSection.vue'))
+import { useUserStore } from '../stores/users'
 import { useTheme } from 'vuetify'
 
 const theme = useTheme()

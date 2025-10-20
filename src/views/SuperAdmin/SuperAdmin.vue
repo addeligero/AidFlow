@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { onMounted, computed, ref } from 'vue'
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import { providersStore } from '@/stores/providers'
-import supabase from '@/lib/Supabase'
-import SuperCard from './SuperCard.vue'
+import { onMounted, computed, ref, defineAsyncComponent } from 'vue'
+const AdminLayout = defineAsyncComponent(() => import('../../layouts/AdminLayout.vue'))
+import { providersStore } from '../../stores/providers'
+import supabase from '../../lib/Supabase'
+const SuperCard = defineAsyncComponent(() => import('./SuperCard.vue'))
 
 const ps = providersStore()
-const users = ref<any[]>([])
+type BasicUser = { id: string; first_name: string; last_name: string; email: string; created_at: string }
+const users = ref<BasicUser[]>([])
 const usersLoading = ref(false)
 const errorMsg = ref('')
 
@@ -65,8 +66,9 @@ async function approveProvider(id: string) {
     if (error) throw error
     snackbar.value = { show: true, text: 'Provider approved', color: 'success' }
     await ps.fetchProviders()
-  } catch (e: any) {
-    snackbar.value = { show: true, text: e?.message || 'Failed to approve', color: 'error' }
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    snackbar.value = { show: true, text: msg || 'Failed to approve', color: 'error' }
   } finally {
     loadingIds.value.delete(id)
   }
@@ -99,7 +101,7 @@ async function rejectProvider() {
       console.warn('⚠️ Could not fetch provider users:', usersError.message)
     } else if (relatedUsers?.length) {
       for (const user of relatedUsers) {
-        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-rejection-email`, {
+        await fetch(`${(import.meta as ImportMeta).env.VITE_SUPABASE_URL}/functions/v1/send-rejection-email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -116,23 +118,24 @@ async function rejectProvider() {
     rejectTargetId.value = null
     rejectReason.value = ''
     await ps.fetchProviders()
-  } catch (e: any) {
-    snackbar.value = { show: true, text: e?.message || 'Failed to reject', color: 'error' }
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    snackbar.value = { show: true, text: msg || 'Failed to reject', color: 'error' }
   } finally {
     rejectLoading.value = false
   }
 }
 
 // Loading flags from store
-const providersLoading = computed<boolean>(() => (ps as any).providersLoading || false)
-const rulesLoading = computed<boolean>(() => (ps as any).rulesLoading || false)
+const providersLoading = computed<boolean>(() => Boolean((ps as unknown as { providersLoading?: boolean }).providersLoading))
+const rulesLoading = computed<boolean>(() => Boolean((ps as unknown as { rulesLoading?: boolean }).rulesLoading))
 
 const reasonDialog = ref(false)
 const reasonAgency = ref('')
 const reasonText = ref('')
 const reasonLoading = ref(false)
 
-async function openReason(p: any) {
+async function openReason(p: { id: string; agency_name?: string; rejection_reason?: string }) {
   reasonAgency.value = p.agency_name || 'Provider'
   reasonText.value = ''
   reasonDialog.value = true
@@ -147,7 +150,7 @@ async function openReason(p: any) {
       .single()
     if (error) throw error
     reasonText.value = data?.rejection_reason || 'No reason provided.'
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (!reasonText.value) reasonText.value = 'No reason provided.'
   } finally {
     reasonLoading.value = false

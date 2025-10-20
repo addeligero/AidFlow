@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import AdminCard from '@/components/Admin/AdminCard.vue'
-import DashboardChart from '@/views/admin/DashboardChart.vue'
-import { useUserStore } from '@/stores/users'
-import { providersStore } from '@/stores/providers'
-import defaultlogo from '@/assets/img/logo/defaultlogo.jp.jpg'
-import supabase from '@/lib/Supabase'
+import { computed, onMounted, ref, defineAsyncComponent } from 'vue'
+const AdminLayout = defineAsyncComponent(() => import('../../layouts/AdminLayout.vue'))
+const AdminCard = defineAsyncComponent(() => import('../../components/Admin/AdminCard.vue'))
+const DashboardChart = defineAsyncComponent(() => import('./DashboardChart.vue'))
+import { useUserStore } from '../../stores/users'
+import { providersStore } from '../../stores/providers'
+import defaultlogo from '../../assets/img/logo/defaultlogo.jp.jpg'
+import supabase from '../../lib/Supabase'
 
 const userStore = useUserStore()
 const provStore = providersStore()
@@ -77,8 +77,9 @@ const saveEdits = async () => {
 
     await provStore.fetchProviders()
     showEdit.value = false
-  } catch (e: any) {
-    console.error('Failed to save edits:', e?.message || e)
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('Failed to save edits:', msg)
   } finally {
     isSaving.value = false
   }

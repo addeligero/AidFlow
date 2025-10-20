@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { useTheme, useDisplay } from 'vuetify'
 import { ref, computed, onMounted } from 'vue'
-import { providersStore } from '@/stores/providers'
-import { useUserStore } from '@/stores/users'
-import supabase from '@/lib/Supabase'
+import { providersStore } from '../stores/providers'
+import { useUserStore } from '../stores/users'
+import supabase from '../lib/Supabase'
 
 const ps = providersStore()
 const user = useUserStore()

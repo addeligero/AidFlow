@@ -2,7 +2,7 @@
 import { useTheme } from 'vuetify'
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { useUserStore } from '@/stores/users'
+import { useUserStore } from '../stores/users'
 
 const route = useRoute()
 const { toggleDrawer } = defineProps<{

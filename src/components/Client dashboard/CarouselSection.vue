@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import { providersStore } from '@/stores/providers'
+import { providersStore } from '../../stores/providers'
+type Provider = {
+  id: string
+  agency_name: string
+  logo?: string
+  status: string
+  program?: string
+  agency_email?: string
+  agency_num?: string
+  office_address?: string
+}
 
 const store = providersStore()
 
@@ -10,9 +20,9 @@ const showHint = ref(true)
 const containerRef = ref<HTMLElement | null>(null)
 
 const showProviderDialog = ref(false)
-const selectedProvider = ref<any | null>(null)
+const selectedProvider = ref<Provider | null>(null)
 
-function openProviderDialog(provider: any) {
+function openProviderDialog(provider: Provider) {
   selectedProvider.value = provider
   showProviderDialog.value = true
 }
@@ -219,7 +229,7 @@ watch(model, () => firstInteract())
               {{ selectedProvider?.agency_name || 'Service Provider' }}
             </div>
             <div class="text-caption text-medium-emphasis">
-              {{ selectedProvider?.contact_person }}
+              {{ selectedProvider?.agency_email || '' }}
             </div>
           </div>
         </v-card-title>

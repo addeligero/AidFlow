@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import MyRules from './MyProgram.vue'
+import { defineAsyncComponent } from 'vue'
+const AdminLayout = defineAsyncComponent(() => import('../../layouts/AdminLayout.vue'))
+const MyRules = defineAsyncComponent(() => import('./MyProgram.vue'))
 </script>
 <template>
   <AdminLayout>
