@@ -8,7 +8,7 @@ import ProviderApplication from '@/views/Auth/ProviderApplication.vue'
 import ViewPrograms from '@/views/Client/ViewPrograms.vue'
 import { useUserStore } from '@/stores/users'
 import { providersStore } from '@/stores/providers'
-import MyProgram from '@/views/admin/MyProgram.vue'
+import AdminPrograms from '@/views/admin/MyProgram.vue'
 import SuperAdmin from '@/views/SuperAdmin/SuperAdmin.vue'
 import AllProviders from '@/views/SuperAdmin/AllProviders.vue'
 const router = createRouter({
@@ -43,12 +43,6 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/add-rules',
-      name: 'Provider Rules',
-      component: MyProgram,
-      meta: { requiresAuth: true, requiresAdmin: true },
-    },
-    {
       path: '/programs',
       name: 'View Programs',
       component: ViewPrograms,
@@ -56,9 +50,9 @@ const router = createRouter({
     },
 
     {
-      path: '/my-rules',
-      name: 'My Rules',
-      component: MyProgram,
+      path: '/AdminPrograms',
+      name: 'Admin Programs',
+      component: AdminPrograms,
       meta: { requiresAuth: true, requiresAdmin: true },
     },
     {

@@ -139,10 +139,10 @@ const logout = async () => {
           color="primary"
         />
         <v-list-item
-          to="/my-rules"
-          value="/myrules"
+          to="/AdminPrograms"
+          value="/AdminPrograms"
           prepend-icon="mdi-account-multiple"
-          title="Add rules"
+          title="Edit programs"
           color="primary"
         />
         <v-list-item
