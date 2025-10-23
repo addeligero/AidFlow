@@ -20,7 +20,9 @@ const headers = [
 ]
 
 const items = computed(() => ps.providers)
-const loading = computed(() => Boolean((ps as unknown as { providersLoading?: boolean }).providersLoading))
+const loading = computed(() =>
+  Boolean((ps as unknown as { providersLoading?: boolean }).providersLoading),
+)
 </script>
 
 <template>

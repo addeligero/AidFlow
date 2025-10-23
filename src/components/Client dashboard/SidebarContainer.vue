@@ -23,7 +23,9 @@ onMounted(async () => {
   if (ps.providers.length === 0) await ps.fetchProviders()
 
   const myProvider = ps.providers.find((p) => p.id === userStore.user_id)
-  status.value = myProvider ? (myProvider.status as 'approved' | 'pending' | 'rejected') : 'not a provider'
+  status.value = myProvider
+    ? (myProvider.status as 'approved' | 'pending' | 'rejected')
+    : 'not a provider'
 
   channel.value = supabase
     .channel('provider-status')
@@ -37,7 +39,7 @@ onMounted(async () => {
       },
       (payload) => {
         const updatedStatus = payload.new.status
-  status.value = (updatedStatus as 'approved' | 'pending' | 'rejected')
+        status.value = updatedStatus as 'approved' | 'pending' | 'rejected'
         console.log('Provider status updated:', updatedStatus)
       },
     )

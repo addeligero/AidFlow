@@ -6,7 +6,13 @@ import supabase from '../../lib/Supabase'
 const SuperCard = defineAsyncComponent(() => import('./SuperCard.vue'))
 
 const ps = providersStore()
-type BasicUser = { id: string; first_name: string; last_name: string; email: string; created_at: string }
+type BasicUser = {
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  created_at: string
+}
 const users = ref<BasicUser[]>([])
 const usersLoading = ref(false)
 const errorMsg = ref('')
@@ -101,15 +107,18 @@ async function rejectProvider() {
       console.warn('⚠️ Could not fetch provider users:', usersError.message)
     } else if (relatedUsers?.length) {
       for (const user of relatedUsers) {
-        await fetch(`${(import.meta as ImportMeta).env.VITE_SUPABASE_URL}/functions/v1/send-rejection-email`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: user.email,
-            firstName: user.first_name,
-            reason: rejectReason.value,
-          }),
-        })
+        await fetch(
+          `${(import.meta as ImportMeta).env.VITE_SUPABASE_URL}/functions/v1/send-rejection-email`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: user.email,
+              firstName: user.first_name,
+              reason: rejectReason.value,
+            }),
+          },
+        )
       }
     }
 
@@ -127,8 +136,12 @@ async function rejectProvider() {
 }
 
 // Loading flags from store
-const providersLoading = computed<boolean>(() => Boolean((ps as unknown as { providersLoading?: boolean }).providersLoading))
-const rulesLoading = computed<boolean>(() => Boolean((ps as unknown as { rulesLoading?: boolean }).rulesLoading))
+const providersLoading = computed<boolean>(() =>
+  Boolean((ps as unknown as { providersLoading?: boolean }).providersLoading),
+)
+const rulesLoading = computed<boolean>(() =>
+  Boolean((ps as unknown as { rulesLoading?: boolean }).rulesLoading),
+)
 
 const reasonDialog = ref(false)
 const reasonAgency = ref('')
