@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, defineAsyncComponent } from 'vue'
+import { useRouter } from 'vue-router'
+import { useProgramsStore } from '../../stores/programs'
 const AdminLayout = defineAsyncComponent(() => import('../../layouts/AdminLayout.vue'))
-const AdminCard = defineAsyncComponent(() => import('../../components/Admin/AdminCard.vue'))
 import { useUserStore } from '../../stores/users'
 import { providersStore } from '../../stores/providers'
 // Use provider logo; no static fallback import to avoid TS asset typing issues
@@ -32,7 +33,75 @@ const logoPreview = ref<string>('')
 const logoFile = ref<File | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const isSaving = ref(false)
+const snackbar = ref<{ show: boolean; text: string; color: string }>({
+  show: false,
+  text: '',
+  color: 'success',
+})
+// Programs for this provider
+const programsStore = useProgramsStore()
+const router = useRouter()
+const myPrograms = computed(() =>
+  programsStore.programs.filter((p) => String(p.provider_id) === String(currentProvider.value?.id)),
+)
 
+onMounted(async () => {
+  if (!programsStore.programs.length) await programsStore.fetchPrograms()
+})
+
+function goEdit(programId: string) {
+  router.push({ path: '/AdminPrograms', query: { programId } })
+}
+function goView(programId: string) {
+  // For now, reuse edit page as view; could be replaced with a dedicated view route
+  router.push({ path: '/AdminPrograms', query: { programId } })
+}
+
+// Delete with password confirmation
+const deleteDialog = ref(false)
+const deleteTargetId = ref<string | null>(null)
+const deletePassword = ref('')
+const deleting = ref(false)
+
+function requestDelete(id: string) {
+  deleteTargetId.value = id
+  deletePassword.value = ''
+  deleteDialog.value = true
+}
+
+async function confirmDeleteProgram() {
+  if (!deleteTargetId.value) return
+  deleting.value = true
+  try {
+    // Re-authenticate by asking the user to re-enter their password
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser()
+    if (!authUser?.email) throw new Error('No authenticated user')
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: authUser.email,
+      password: deletePassword.value,
+    })
+    if (signInError) throw new Error('Invalid password')
+
+    const { error } = await supabase
+      .from('programs')
+      .delete()
+      .eq('id', deleteTargetId.value)
+      .eq('provider_id', currentProvider.value?.id)
+    if (error) throw error
+    await programsStore.fetchPrograms()
+    snackbar.value = { show: true, text: 'Program deleted', color: 'success' }
+    deleteDialog.value = false
+    deleteTargetId.value = null
+    deletePassword.value = ''
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    snackbar.value = { show: true, text: msg || 'Delete failed', color: 'error' }
+  } finally {
+    deleting.value = false
+  }
+}
 // Reusable confirmation dialog
 type ConfirmState = { show: boolean; message: string; resolve?: (v: boolean) => void }
 const confirmState = ref<ConfirmState>({ show: false, message: '' })
@@ -130,12 +199,47 @@ const saveEdits = async () => {
       >
     </v-card>
 
-    <AdminCard
-      title="Programs"
-      subHeader="Empower Your Community"
-      shortStatement="Click below to add or update your community guidelines."
-      buttonText="View Programs Here"
-    />
+    <!-- Programs grid -->
+    <v-row>
+      <v-col v-for="p in myPrograms" :key="p.id" cols="12" sm="6" md="4" lg="3" class="d-flex">
+        <v-card class="w-100" elevation="6">
+          <v-card-title class="text-subtitle-1">{{ p.name }}</v-card-title>
+          <v-card-subtitle class="text-caption text-medium-emphasis">
+            {{ p.category || 'Program' }}
+          </v-card-subtitle>
+          <v-card-text>
+            <div class="text-caption mb-2">{{ p.description || 'No description' }}</div>
+            <div class="text-caption">Requirements: {{ p.requirements?.length || 0 }}</div>
+            <div class="text-caption">Rules: {{ p.rules?.length || 0 }}</div>
+          </v-card-text>
+          <v-card-actions>
+            <v-btn variant="text" size="small" prepend-icon="mdi-eye" @click="goView(p.id)"
+              >View</v-btn
+            >
+            <v-btn variant="text" size="small" prepend-icon="mdi-pencil" @click="goEdit(p.id)"
+              >Edit</v-btn
+            >
+            <v-spacer />
+            <v-btn
+              color="error"
+              variant="text"
+              size="small"
+              prepend-icon="mdi-delete"
+              @click="requestDelete(p.id)"
+              >Delete</v-btn
+            >
+          </v-card-actions>
+        </v-card>
+      </v-col>
+      <v-col v-if="!myPrograms.length" cols="12" class="py-10">
+        <v-empty-state
+          headline="No programs yet"
+          title="No programs"
+          text="Create your first program from the Programs page."
+          icon="mdi-view-list-outline"
+        />
+      </v-col>
+    </v-row>
   </AdminLayout>
 
   <!-- Edit Provider Dialog -->
@@ -168,6 +272,38 @@ const saveEdits = async () => {
         <v-spacer />
         <v-btn variant="text" @click="showEdit = false">Cancel</v-btn>
         <v-btn color="primary" :loading="isSaving" @click="saveEdits">Save</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="2500">
+    {{ snackbar.text }}
+  </v-snackbar>
+
+  <!-- Delete Program Dialog -->
+  <v-dialog v-model="deleteDialog" max-width="480">
+    <v-card>
+      <v-card-title class="text-h6">Confirm Delete</v-card-title>
+      <v-card-text>
+        <div class="mb-3">Please type your password to confirm deletion.</div>
+        <v-text-field
+          v-model="deletePassword"
+          label="Password"
+          type="password"
+          autocomplete="current-password"
+          :disabled="deleting"
+        />
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" :disabled="deleting" @click="deleteDialog = false">Cancel</v-btn>
+        <v-btn
+          color="error"
+          :loading="deleting"
+          :disabled="!deletePassword"
+          @click="confirmDeleteProgram"
+          >Delete</v-btn
+        >
       </v-card-actions>
     </v-card>
   </v-dialog>

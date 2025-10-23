@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, defineAsyncComponent } from 'vue'
+import { useRoute } from 'vue-router'
 import { useUserStore } from '../../stores/users'
 const AdminLayout = defineAsyncComponent(() => import('../../layouts/AdminLayout.vue'))
 const ProgramManager = defineAsyncComponent(
@@ -16,6 +17,7 @@ const snackbar = ref<{ show: boolean; text: string; color: string }>({
 })
 
 const programManagerRef = ref<{ refresh?: () => Promise<void> } | null>(null)
+const route = useRoute()
 
 function notify(payload: { text: string; color?: string }) {
   snackbar.value = {
@@ -44,6 +46,14 @@ onMounted(async () => {
     if (userStore.user_id) {
       providerId.value = String(userStore.user_id)
     }
+  }
+  // If navigated with a specific program to edit, refresh first then open editor
+  const programId = (route.query.programId as string) || ''
+  if (programId && programManagerRef.value?.refresh) {
+    await programManagerRef.value.refresh()
+    ;(programManagerRef.value as unknown as { openEditById?: (id: string) => void }).openEditById?.(
+      programId,
+    )
   }
 })
 </script>

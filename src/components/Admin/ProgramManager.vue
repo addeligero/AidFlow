@@ -294,6 +294,10 @@ const emit = defineEmits<{
 
 defineExpose({
   refresh: fetchPrograms,
+  openEditById(id: string) {
+    const row = programs.value.find((p) => p.id === id)
+    if (row) openEdit(row as Program)
+  },
 })
 
 // Helpers and local state for structured editors
