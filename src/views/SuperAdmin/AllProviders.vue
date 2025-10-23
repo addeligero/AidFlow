@@ -9,16 +9,6 @@ onMounted(async () => {
   if (!ps.providers.length) await ps.fetchProviders()
 })
 
-const headers = [
-  { title: 'Agency', key: 'agency_name' },
-  { title: 'Status', key: 'status' },
-  { title: 'Created', key: 'created_at' },
-  { title: 'Program', key: 'program' },
-  { title: 'Agency Email', key: 'agency_email' },
-  { title: 'Agency Number', key: 'agency_number' },
-  { title: 'Office Address', key: 'office_address' },
-]
-
 const items = computed(() => ps.providers)
 const loading = computed(() =>
   Boolean((ps as unknown as { providersLoading?: boolean }).providersLoading),

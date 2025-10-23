@@ -63,6 +63,25 @@ const formRules = ref<RuleItem[]>([])
 const confirmDeleteOpen = ref(false)
 const toDeleteId = ref<string | null>(null)
 
+// Reusable confirmation dialog state
+type ConfirmState = { show: boolean; message: string; resolve?: (v: boolean) => void }
+const confirmState = ref<ConfirmState>({ show: false, message: '' })
+function requestConfirm(message: string) {
+  return new Promise<boolean>((resolve) => {
+    confirmState.value = { show: true, message, resolve }
+  })
+}
+function confirmYes() {
+  confirmState.value.resolve?.(true)
+  confirmState.value.show = false
+  confirmState.value.message = ''
+}
+function confirmNo() {
+  confirmState.value.resolve?.(false)
+  confirmState.value.show = false
+  confirmState.value.message = ''
+}
+
 const channel = ref<RealtimeChannel | null>(null)
 
 const hasPrograms = computed(() => !loading.value && programs.value.length > 0)
@@ -103,6 +122,8 @@ function confirmDelete(id: string) {
 async function deleteProgram() {
   if (!toDeleteId.value || !props.providerId) return
   try {
+    const ok = await requestConfirm('Delete this program? This cannot be undone.')
+    if (!ok) return
     const { error } = await supabase
       .from('programs')
       .delete()
@@ -124,6 +145,10 @@ async function saveProgram() {
   if (!props.providerId) return
   editorLoading.value = true
   try {
+    const ok = await requestConfirm(
+      isEdit.value ? 'Save changes to this program?' : 'Create this program?',
+    )
+    if (!ok) return
     if (!formName.value.trim()) throw new Error('Program name is required')
 
     // Validate structured arrays
@@ -355,7 +380,9 @@ function editReq(index: number) {
   reqDialogOpen.value = true
 }
 function removeReq(index: number) {
-  formRequirements.value.splice(index, 1)
+  requestConfirm('Remove this requirement?').then((ok) => {
+    if (ok) formRequirements.value.splice(index, 1)
+  })
 }
 function saveReq() {
   if (!reqModel.value.name.trim()) return
@@ -363,9 +390,14 @@ function saveReq() {
     if (!reqModel.value.field_key?.toString().trim() || !reqModel.value.operator) return
   }
   const payload: RequirementItem = { ...reqModel.value }
-  if (reqEditIndex.value === null) formRequirements.value.push(payload)
-  else formRequirements.value.splice(reqEditIndex.value, 1, payload)
-  reqDialogOpen.value = false
+  const isAdding = reqEditIndex.value === null
+  const msg = isAdding ? 'Add this requirement?' : 'Save changes to this requirement?'
+  requestConfirm(msg).then((ok) => {
+    if (!ok) return
+    if (isAdding) formRequirements.value.push(payload)
+    else formRequirements.value.splice(reqEditIndex.value as number, 1, payload)
+    reqDialogOpen.value = false
+  })
 }
 
 // Rule dialog state and actions
@@ -384,14 +416,21 @@ function editRule(index: number) {
   ruleDialogOpen.value = true
 }
 function removeRule(index: number) {
-  formRules.value.splice(index, 1)
+  requestConfirm('Remove this rule?').then((ok) => {
+    if (ok) formRules.value.splice(index, 1)
+  })
 }
 function saveRule() {
   if (!ruleModel.value.field.trim() || !ruleModel.value.operator) return
   const payload: RuleItem = { ...ruleModel.value }
-  if (ruleEditIndex.value === null) formRules.value.push(payload)
-  else formRules.value.splice(ruleEditIndex.value, 1, payload)
-  ruleDialogOpen.value = false
+  const isAdding = ruleEditIndex.value === null
+  const msg = isAdding ? 'Add this rule?' : 'Save changes to this rule?'
+  requestConfirm(msg).then((ok) => {
+    if (!ok) return
+    if (isAdding) formRules.value.push(payload)
+    else formRules.value.splice(ruleEditIndex.value as number, 1, payload)
+    ruleDialogOpen.value = false
+  })
 }
 </script>
 
@@ -650,6 +689,19 @@ function saveRule() {
           <v-spacer />
           <v-btn variant="text" @click="ruleDialogOpen = false">Cancel</v-btn>
           <v-btn color="primary" @click="saveRule">Save</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Global Confirm Dialog -->
+    <v-dialog v-model="confirmState.show" max-width="420">
+      <v-card>
+        <v-card-title class="text-h6">Please confirm</v-card-title>
+        <v-card-text>{{ confirmState.message }}</v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="confirmNo">No</v-btn>
+          <v-btn color="primary" @click="confirmYes">Yes</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

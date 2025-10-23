@@ -7,7 +7,6 @@ import supabase from '../lib/Supabase'
 
 const ps = providersStore()
 const user = useUserStore()
-const props = defineProps<{ userAvatar?: string }>()
 const drawer = ref(true)
 const { mdAndDown } = useDisplay()
 
@@ -38,7 +37,7 @@ const handleFileUpload = async (event: Event) => {
   }
   reader.readAsDataURL(file)
 
-  const { data: userData, error } = await supabase.auth.getUser()
+  const { data: userData } = await supabase.auth.getUser()
   const userId = userData.user?.id
   if (!userId) {
     console.error('No authenticated user found')

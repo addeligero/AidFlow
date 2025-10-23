@@ -5,7 +5,7 @@ const AdminCard = defineAsyncComponent(() => import('../../components/Admin/Admi
 const DashboardChart = defineAsyncComponent(() => import('./DashboardChart.vue'))
 import { useUserStore } from '../../stores/users'
 import { providersStore } from '../../stores/providers'
-import defaultlogo from '../../assets/img/logo/defaultlogo.jp.jpg'
+// Use provider logo; no static fallback import to avoid TS asset typing issues
 import supabase from '../../lib/Supabase'
 
 const userStore = useUserStore()
@@ -24,7 +24,7 @@ const currentProvider = computed(() => {
 
 const displayName = computed(() => currentProvider.value?.program || userStore.userFullName)
 const displayAgency = computed(() => currentProvider.value?.agency_name || userStore.userFullName)
-const displayLogo = computed(() => currentProvider.value?.logo || (defaultlogo as string))
+const displayLogo = computed(() => currentProvider.value?.logo || '')
 
 // Edit dialog state
 const showEdit = ref(false)
@@ -34,10 +34,29 @@ const logoFile = ref<File | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const isSaving = ref(false)
 
+// Reusable confirmation dialog
+type ConfirmState = { show: boolean; message: string; resolve?: (v: boolean) => void }
+const confirmState = ref<ConfirmState>({ show: false, message: '' })
+function requestConfirm(message: string) {
+  return new Promise<boolean>((resolve) => {
+    confirmState.value = { show: true, message, resolve }
+  })
+}
+function confirmYes() {
+  confirmState.value.resolve?.(true)
+  confirmState.value.show = false
+  confirmState.value.message = ''
+}
+function confirmNo() {
+  confirmState.value.resolve?.(false)
+  confirmState.value.show = false
+  confirmState.value.message = ''
+}
+
 const openEdit = () => {
   if (!currentProvider.value) return
   editName.value = currentProvider.value.agency_name
-  logoPreview.value = currentProvider.value.logo || (defaultlogo as string)
+  logoPreview.value = currentProvider.value.logo || ''
   logoFile.value = null
   showEdit.value = true
 }
@@ -56,6 +75,8 @@ const saveEdits = async () => {
   if (!currentProvider.value) return
   isSaving.value = true
   try {
+    const ok = await requestConfirm('Save changes to agency details?')
+    if (!ok) return
     let logoUrl = currentProvider.value.logo || ''
     if (logoFile.value) {
       const ext = logoFile.value.name.split('.').pop()
@@ -152,6 +173,19 @@ const saveEdits = async () => {
         <v-spacer />
         <v-btn variant="text" @click="showEdit = false">Cancel</v-btn>
         <v-btn color="primary" :loading="isSaving" @click="saveEdits">Save</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- Global Confirm Dialog -->
+  <v-dialog v-model="confirmState.show" max-width="420">
+    <v-card>
+      <v-card-title class="text-h6">Please confirm</v-card-title>
+      <v-card-text>{{ confirmState.message }}</v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="confirmNo">No</v-btn>
+        <v-btn color="primary" @click="confirmYes">Yes</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
