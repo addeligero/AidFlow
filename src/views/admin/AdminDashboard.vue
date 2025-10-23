@@ -2,7 +2,6 @@
 import { computed, onMounted, ref, defineAsyncComponent } from 'vue'
 const AdminLayout = defineAsyncComponent(() => import('../../layouts/AdminLayout.vue'))
 const AdminCard = defineAsyncComponent(() => import('../../components/Admin/AdminCard.vue'))
-const DashboardChart = defineAsyncComponent(() => import('./DashboardChart.vue'))
 import { useUserStore } from '../../stores/users'
 import { providersStore } from '../../stores/providers'
 // Use provider logo; no static fallback import to avoid TS asset typing issues
@@ -131,10 +130,6 @@ const saveEdits = async () => {
       >
     </v-card>
 
-    <DashboardChart />
-    <br />
-    <hr />
-    <br />
     <AdminCard
       title="Programs"
       subHeader="Empower Your Community"

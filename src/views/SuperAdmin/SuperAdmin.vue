@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { onMounted, computed, ref, defineAsyncComponent } from 'vue'
+import { computed, ref, defineAsyncComponent } from 'vue'
 const AdminLayout = defineAsyncComponent(() => import('../../layouts/AdminLayout.vue'))
 import { providersStore } from '../../stores/providers'
 import supabase from '../../lib/Supabase'
 const SuperCard = defineAsyncComponent(() => import('./SuperCard.vue'))
+const SuperAdminChart = defineAsyncComponent(() => import('./SuperAdminChart.vue'))
+import { useProgramsStore } from '../../stores/programs'
 
 const ps = providersStore()
+const progStore = useProgramsStore()
 type BasicUser = {
   id: string
   first_name: string
@@ -33,12 +36,16 @@ const fetchUsers = async () => {
 }
 
 const refreshAll = async () => {
-  await Promise.all([ps.fetchProviders(), ps.fetchRules(), fetchUsers()])
+  await Promise.all([ps.fetchProviders(), ps.fetchRules(), progStore.fetchPrograms(), fetchUsers()])
 }
 
 const totalUsers = computed(() => users.value.length)
 const totalProviders = computed(() => ps.providers.length)
-const totalRules = computed(() => ps.rules.length)
+const totalPrograms = computed(() => progStore.programs.length)
+const approvedProviders = computed(() => ps.providers.filter((p) => p.status === 'approved').length)
+const disapprovedProviders = computed(
+  () => ps.providers.filter((p) => p.status === 'rejected').length,
+)
 
 const recentProviders = computed(() =>
   [...ps.providers]
@@ -107,18 +114,13 @@ async function rejectProvider() {
       console.warn('⚠️ Could not fetch provider users:', usersError.message)
     } else if (relatedUsers?.length) {
       for (const user of relatedUsers) {
-        await fetch(
-          `${(import.meta as ImportMeta).env.VITE_SUPABASE_URL}/functions/v1/send-rejection-email`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: user.email,
-              firstName: user.first_name,
-              reason: rejectReason.value,
-            }),
+        await supabase.functions.invoke('send-rejection-email', {
+          body: {
+            email: user.email,
+            firstName: user.first_name,
+            reason: rejectReason.value,
           },
-        )
+        })
       }
     }
 
@@ -163,7 +165,7 @@ async function openReason(p: { id: string; agency_name?: string; rejection_reaso
       .single()
     if (error) throw error
     reasonText.value = data?.rejection_reason || 'No reason provided.'
-  } catch (e: unknown) {
+  } catch {
     if (!reasonText.value) reasonText.value = 'No reason provided.'
   } finally {
     reasonLoading.value = false
@@ -184,6 +186,16 @@ function copyReason() {
 <template>
   <AdminLayout>
     <v-container fluid class="py-4">
+      <v-card class="mb-6" elevation="6">
+        <v-card-text>
+          <SuperAdminChart
+            :total-providers="totalProviders"
+            :total-programs="totalPrograms"
+            :approved-providers="approvedProviders"
+            :disapproved-providers="disapprovedProviders"
+          />
+        </v-card-text>
+      </v-card>
       <div class="d-flex align-center mb-4">
         <h2 class="text-h6 text-md-h5 me-3">Super Admin Dashboard</h2>
         <v-spacer />
@@ -199,10 +211,10 @@ function copyReason() {
           <SuperCard color="lime-darken-3" :totalNumber="totalUsers" caption="Total Users" />
         </v-col>
         <v-col cols="12" md="4">
-          <SuperCard :totalNumber="totalProviders" caption="Total Providerss" />
+          <SuperCard :totalNumber="totalProviders" caption="Total Providers" />
         </v-col>
         <v-col cols="12" md="4">
-          <SuperCard color="success" :totalNumber="totalRules" caption="Total Rules" />
+          <SuperCard color="success" :totalNumber="totalPrograms" caption="Total Programs" />
         </v-col>
       </v-row>
 
