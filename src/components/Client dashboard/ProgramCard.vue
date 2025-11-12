@@ -133,8 +133,8 @@ async function submitCurrent() {
       state.file,
       extracted,
       {
-        bucket: 'client-docs',
-        directory: `program-${programId}`,
+        bucket: 'client-submissions', // renamed bucket (create or rename in Supabase)
+        directory: 'uploads', // keep if policy expects uploads/*
       },
     )
     state.submitted = true
