@@ -26,8 +26,24 @@ export const useSubmissionsStore = defineStore('submissions', {
   state: () => ({
     creating: false as boolean,
     uploading: false as boolean,
+    docsLoading: false as boolean,
+    documents: [] as ClientDocument[],
   }),
   actions: {
+    async findOrGetPendingSubmission(clientId: string | number, programId: string | number) {
+      // Try to find an existing pending submission first
+      const { data, error } = await supabase
+        .from('client_submissions')
+        .select('id')
+        .eq('client_id', Number(clientId))
+        .eq('program_id', Number(programId))
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (!error && data) return String(data.id)
+      return null
+    },
     async createSubmission(clientId: string | number, programId: string | number) {
       this.creating = true
       try {
@@ -83,24 +99,55 @@ export const useSubmissionsStore = defineStore('submissions', {
         const { data: pub } = supabase.storage.from(bucket).getPublicUrl(storagePath)
         const publicUrl = pub.publicUrl
 
+        const extractedMerged = {
+          ...(typeof extractedData === 'object' && extractedData
+            ? (extractedData as Record<string, unknown>)
+            : {}),
+          _storagePath: storagePath,
+        }
+
+        const payload = {
+          submission_id: Number(submissionId),
+          doc_type: docType,
+          file_url: publicUrl,
+          extracted_data: extractedMerged,
+          verified: false,
+        }
+
         const { data, error } = await supabase
           .from('client_documents')
-          .insert([
-            {
-              submission_id: Number(submissionId),
-              doc_type: docType,
-              file_url: publicUrl,
-              extracted_data: extractedData,
-              verified: false,
-            },
-          ])
-          .select('id')
+          .insert([payload])
+          .select('*')
           .single()
         if (error) throw error
+        // push into local cache
+        this.documents.unshift(data as ClientDocument)
         return String(data.id)
       } finally {
         this.uploading = false
       }
+    },
+    async fetchDocuments(submissionId: string | number) {
+      this.docsLoading = true
+      try {
+        const { data, error } = await supabase
+          .from('client_documents')
+          .select('*')
+          .eq('submission_id', Number(submissionId))
+          .order('created_at', { ascending: false })
+        if (error) throw error
+        this.documents = (data || []) as ClientDocument[]
+      } finally {
+        this.docsLoading = false
+      }
+    },
+    async deleteDocument(documentId: string | number, bucket: string, storagePath?: string) {
+      // Optional storage deletion if path known
+      if (storagePath) {
+        await supabase.storage.from(bucket).remove([storagePath])
+      }
+      await supabase.from('client_documents').delete().eq('id', Number(documentId))
+      this.documents = this.documents.filter((d) => String(d.id) !== String(documentId))
     },
   },
 })

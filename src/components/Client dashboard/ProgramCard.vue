@@ -6,6 +6,13 @@ import { useSubmissionsStore } from '../../stores/submissions'
 
 const props = defineProps<{ program: Program }>()
 
+type ExtractedData = {
+  api_result?: OcrResult
+  rules?: string
+  requirement_key?: string
+  _storagePath?: string
+}
+
 type OcrResult = {
   doc_type?: string
   raw_text?: string
@@ -34,6 +41,10 @@ const uploads = ref<
 const userStore = useUserStore()
 const submissions = useSubmissionsStore()
 const submissionId = ref<string | null>(null)
+// Map requirement key -> client document id (if already stored)
+const existingDocs = ref<
+  Record<string, { docId: string | number; file_url: string; extracted: ExtractedData }>
+>({})
 
 const rulesString = computed(() => {
   const rules = (props.program.rules || []) as RuleItem[]
@@ -121,11 +132,15 @@ async function submitCurrent() {
   // Create submission once per program-card session
   try {
     if (!submissionId.value) {
-      submissionId.value = await submissions.createSubmission(clientId, programId)
+      // Try find pending first
+      submissionId.value =
+        (await submissions.findOrGetPendingSubmission(clientId, programId)) ||
+        (await submissions.createSubmission(clientId, programId))
     }
     const extracted = {
       api_result: activeOcr.value,
       rules: rulesString.value,
+      requirement_key: key,
     }
     await submissions.addDocument(
       submissionId.value,
@@ -138,11 +153,78 @@ async function submitCurrent() {
       },
     )
     state.submitted = true
+    existingDocs.value[key] = {
+      docId: submissions.documents[0]?.id || 'unknown',
+      file_url: submissions.documents[0]?.file_url || '',
+      extracted,
+    }
     previewOpen.value = false
   } catch (e: unknown) {
     state.error = e instanceof Error ? e.message : String(e)
   }
 }
+
+function openExisting(key: string) {
+  previewKey.value = key
+  // reconstruct active OCR view from stored extracted data
+  const doc = existingDocs.value[key]
+  if (doc) {
+    uploads.value[key] = uploads.value[key] || {
+      name: 'Uploaded document',
+      uploading: false,
+    }
+    uploads.value[key].ocr = (doc.extracted?.api_result || {}) as OcrResult
+  }
+  previewOpen.value = true
+}
+
+async function confirmResubmit() {
+  const key = previewKey.value
+  if (!key) return
+  const docMeta = existingDocs.value[key]
+  if (!docMeta) return resubmit() // fallback
+  const ok = window.confirm('Resubmit? This will delete the previous document.')
+  if (!ok) return
+  try {
+    // Attempt to remove storage file path if we stored it in extracted
+    const storagePath: string | undefined = docMeta.extracted?._storagePath
+    await submissions.deleteDocument(docMeta.docId, 'client-submissions', storagePath)
+    delete existingDocs.value[key]
+    uploads.value[key].ocr = undefined
+    uploads.value[key].submitted = false
+    resubmit()
+  } catch (e: unknown) {
+    console.error('Failed to delete previous document', e)
+    alert('Failed to delete previous document. See console for details.')
+  }
+}
+
+// On mount attempt to load existing pending submission + docs
+import { onMounted } from 'vue'
+onMounted(async () => {
+  if (!userStore.isUserLoaded) await userStore.fetchUser()
+  if (!userStore.user_id) return
+  const clientId = userStore.user_id
+  const programId = props.program.id as string | number
+  const pendingId = await submissions.findOrGetPendingSubmission(clientId, programId)
+  if (!pendingId) return
+  submissionId.value = pendingId
+  await submissions.fetchDocuments(pendingId)
+  // Map documents back to requirement keys if present
+  for (const doc of submissions.documents) {
+    const extracted: ExtractedData = (doc.extracted_data as ExtractedData) || {}
+    const reqKey = extracted?.requirement_key
+    if (!reqKey) continue
+    existingDocs.value[reqKey] = { docId: doc.id, file_url: doc.file_url, extracted }
+    uploads.value[reqKey] = uploads.value[reqKey] || {
+      name: 'Uploaded document',
+      uploading: false,
+      submitted: true,
+    }
+    uploads.value[reqKey].submitted = true
+    uploads.value[reqKey].ocr = extracted.api_result as OcrResult
+  }
+})
 </script>
 
 <template>
@@ -173,7 +255,7 @@ async function submitCurrent() {
           }}</v-list-item-subtitle>
           <template #append>
             <div class="d-flex align-center ga-2">
-              <template v-if="uploads[keyForRequirement(req, idx)]?.ocr">
+              <template v-if="uploads[keyForRequirement(req, idx)]?.submitted">
                 <v-btn
                   size="x-small"
                   variant="tonal"
@@ -184,12 +266,7 @@ async function submitCurrent() {
                 <v-btn
                   size="x-small"
                   variant="text"
-                  @click="
-                    () => {
-                      previewKey = keyForRequirement(req, idx)
-                      previewOpen = true
-                    }
-                  "
+                  @click="openExisting(keyForRequirement(req, idx))"
                 >
                   View
                 </v-btn>
@@ -256,7 +333,10 @@ async function submitCurrent() {
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn variant="text" @click="resubmit">Resubmit</v-btn>
+        <v-btn variant="text" v-if="existingDocs[previewKey || '']" @click="confirmResubmit"
+          >Resubmit</v-btn
+        >
+        <v-btn variant="text" v-else @click="resubmit">Resubmit</v-btn>
         <v-btn
           color="primary"
           :loading="submissions.uploading || submissions.creating"
