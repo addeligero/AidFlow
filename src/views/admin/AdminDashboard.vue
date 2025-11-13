@@ -213,9 +213,6 @@ const saveEdits = async () => {
             <div class="text-caption">Rules: {{ p.rules?.length || 0 }}</div>
           </v-card-text>
           <v-card-actions>
-            <v-btn variant="text" size="small" prepend-icon="mdi-eye" @click="goView(p.id)"
-              >View</v-btn
-            >
             <v-btn variant="text" size="small" prepend-icon="mdi-pencil" @click="goEdit(p.id)"
               >Edit</v-btn
             >
