@@ -50,7 +50,11 @@ const rulesString = computed(() => {
   const rules = (props.program.rules || []) as RuleItem[]
   if (!rules.length) return ''
   return rules
-    .map((r) => `${r.field} ${r.operator} ${r.value ?? ''}`.trim())
+    .map((r) => {
+      const structured = `${r.field || ''} ${r.operator || ''} ${r.value ?? ''}`.trim()
+      const statement = (r.note || '').toString().trim()
+      return statement || structured
+    })
     .filter(Boolean)
     .join(', ')
 })
@@ -308,10 +312,17 @@ onMounted(async () => {
       </div>
       <v-list v-else density="compact" class="py-0">
         <v-list-item v-for="(r, rIdx) in program.rules" :key="rIdx" class="px-0">
-          <v-list-item-title class="text-body-2"
-            >{{ r.field }} {{ r.operator }} {{ r.value }}</v-list-item-title
-          >
-          <v-list-item-subtitle class="text-caption">{{ r.note }}</v-list-item-subtitle>
+          <v-list-item-title class="text-body-2">
+            <template v-if="r.field && String(r.field).trim()">
+              {{ r.field }} {{ r.operator }} {{ r.value }}
+            </template>
+            <template v-else>
+              {{ r.note || '—' }}
+            </template>
+          </v-list-item-title>
+          <v-list-item-subtitle v-if="r.field && String(r.field).trim()" class="text-caption">
+            {{ r.note }}
+          </v-list-item-subtitle>
         </v-list-item>
       </v-list>
     </v-card-text>

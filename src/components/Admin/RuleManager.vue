@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
-// @ts-ignore - Vue SFC module resolution
 import supabase from '../../lib/Supabase'
-// @ts-ignore - Vue SFC module resolution
-import RulesCard from './RulesCard.vue'
+// Rules list card is rendered inline below to avoid import issues
 
-type RequirementExtra = Record<string, any> | string | null
+type RequirementExtra = Record<string, unknown> | string | null
 
 type Requirement = {
   id: string
@@ -19,9 +17,7 @@ type Requirement = {
   created_at?: string
 }
 
-type RuleRequirementRow = {
-  requirement?: Requirement | null
-}
+// (Removed intermediate RuleRequirementRow type, mapping now uses generic records)
 
 type Rule = {
   id: string
@@ -57,7 +53,7 @@ const selectedRequirementIds = ref<string[]>([])
 const confirmDeleteOpen = ref(false)
 const toDeleteId = ref<string | null>(null)
 
-const rulesChannel = ref<any | null>(null)
+const rulesChannel = ref<unknown | null>(null)
 
 const hasRules = computed(() => !rulesLoading.value && rules.value.length > 0)
 const requirementItems = computed(() => props.requirements)
@@ -86,7 +82,7 @@ function extractRequirementNote(extra?: RequirementExtra | undefined): string | 
   }
   try {
     return JSON.stringify(extra)
-  } catch (e) {
+  } catch {
     return null
   }
 }
@@ -161,39 +157,46 @@ async function fetchRules() {
       .order('created_at', { ascending: false })
     if (error) throw error
 
-    rules.value = (data || []).map((row: any) => {
-      const requirementRows = ((row.rule_requirements as RuleRequirementRow[] | null) || [])
+    type Row = Record<string, unknown>
+    rules.value = (data || []).map((row: Row) => {
+      const links =
+        (row.rule_requirements as Array<{ requirement?: Record<string, unknown> | null }> | null) ||
+        []
+      const requirementRows = links
         .map((link) => {
           const req = link?.requirement
           if (!req) return null
           return {
-            id: String(req.id),
-            name: req.name,
-            type: (req.type as 'document' | 'condition') ?? 'document',
-            field_key: req.field_key,
-            operator: req.operator,
-            value: req.value,
-            description: req.description,
-            extra: req.extra,
-            created_at: req.created_at,
+            id: String(req.id as string | number),
+            name: String(req.name ?? ''),
+            type: (req.type === 'condition' ? 'condition' : 'document') as 'document' | 'condition',
+            field_key: (req.field_key as string | null | undefined) ?? null,
+            operator: (req.operator as string | null | undefined) ?? null,
+            value: (req.value as string | null | undefined) ?? null,
+            description: (req.description as string | null | undefined) ?? null,
+            extra: req.extra as RequirementExtra,
+            created_at: req.created_at as string | undefined,
           } as Requirement
         })
         .filter(Boolean) as Requirement[]
 
       return {
-        id: String(row.id),
-        rule_name: row.rule_name,
-        description: row.description,
-        subsidy_amount: Number(row.subsidy_amount),
-        classification: row.classification,
-        created_at: row.created_at,
+        id: String(row.id as string | number),
+        rule_name: String(row.rule_name ?? ''),
+        description: (row.description as string | null | undefined) ?? null,
+        subsidy_amount: Number(row.subsidy_amount ?? 0),
+        classification: (row.classification as string | null | undefined) ?? null,
+        created_at: row.created_at as string | undefined,
         requirements: requirementRows,
       }
     }) as Rule[]
 
     emit('rules-loaded', rules.value)
-  } catch (e: any) {
-    errorMsg.value = e?.message || 'Failed to load rules.'
+  } catch (err: unknown) {
+    errorMsg.value =
+      err && typeof err === 'object' && 'message' in err
+        ? (err as { message?: string }).message || 'Failed to load rules.'
+        : 'Failed to load rules.'
     rules.value = []
     emit('rules-loaded', [])
   } finally {
@@ -254,8 +257,12 @@ async function saveRule() {
 
     editorOpen.value = false
     await fetchRules()
-  } catch (e: any) {
-    notify(e?.message || 'Saving rule failed', 'error')
+  } catch (err: unknown) {
+    const msg =
+      err && typeof err === 'object' && 'message' in err
+        ? (err as { message?: string }).message
+        : 'Saving rule failed'
+    notify(msg || 'Saving rule failed', 'error')
   } finally {
     editorLoading.value = false
   }
@@ -279,8 +286,12 @@ async function deleteRule() {
     confirmDeleteOpen.value = false
     toDeleteId.value = null
     await fetchRules()
-  } catch (e: any) {
-    notify(e?.message || 'Delete failed', 'error')
+  } catch (err: unknown) {
+    const msg =
+      err && typeof err === 'object' && 'message' in err
+        ? (err as { message?: string }).message
+        : 'Delete failed'
+    notify(msg || 'Delete failed', 'error')
   }
 }
 
@@ -295,34 +306,12 @@ function copyRule(rule: Rule) {
       navigator.clipboard.writeText(json)
     }
     notify('Rule copied to clipboard')
-  } catch (e) {
-    console.error('Failed to copy rule', e)
+  } catch (err: unknown) {
+    console.error('Failed to copy rule', err)
   }
 }
 
-function toRuleCard(rule: Rule) {
-  const conditions = rule.requirements.reduce(
-    (acc, requirement, index) => {
-      const prefix = requirement.type === 'document' ? 'Document' : 'Condition'
-      const labelBase = requirement.name?.trim() || `Requirement ${index + 1}`
-      const label = `${prefix}: ${labelBase}`
-      acc[label] = requirementSummary(requirement)
-      return acc
-    },
-    {} as Record<string, string>,
-  )
-
-  return {
-    id: rule.id,
-    rule_name: rule.rule_name,
-    description: rule.description,
-    classification: rule.classification,
-    subsidy_amount: rule.subsidy_amount,
-    requirements: rule.requirements,
-    conditions,
-    created_at: rule.created_at,
-  }
-}
+// Removed toRuleCard helper since we render inline now
 
 function refresh() {
   fetchRules()
@@ -332,6 +321,7 @@ defineExpose({ refresh })
 
 function subscribeRealtime() {
   if (rulesChannel.value) {
+    // @ts-expect-error: removeChannel type mismatch in our runtime version
     supabase.removeChannel(rulesChannel.value)
     rulesChannel.value = null
   }
@@ -359,6 +349,7 @@ watch(
       rules.value = []
       emit('rules-loaded', [])
       if (rulesChannel.value) {
+        // @ts-expect-error: removeChannel type mismatch in our runtime version
         supabase.removeChannel(rulesChannel.value)
         rulesChannel.value = null
       }
@@ -379,7 +370,10 @@ watch(
 )
 
 onBeforeUnmount(() => {
-  if (rulesChannel.value) supabase.removeChannel(rulesChannel.value)
+  if (rulesChannel.value) {
+    // @ts-expect-error: removeChannel type mismatch in our runtime version
+    supabase.removeChannel(rulesChannel.value)
+  }
 })
 </script>
 
@@ -413,16 +407,73 @@ onBeforeUnmount(() => {
 
     <v-row v-else-if="hasRules">
       <v-col cols="12" md="6" lg="4" v-for="r in rules" :key="r.id" class="d-flex">
-        <RulesCard
-          class="flex-grow-1"
-          :rule="toRuleCard(r)"
-          amount-label="Amount"
-          :requirements-label="'requirements'"
-          empty-requirements-text="No requirements linked."
-          @edit="() => openEditRule(r)"
-          @delete="confirmRuleDelete"
-          @copy="() => copyRule(r)"
-        />
+        <v-card class="grow d-flex flex-column">
+          <v-card-item>
+            <v-card-title class="text-subtitle-1">{{ r.rule_name }}</v-card-title>
+            <v-card-subtitle class="d-flex align-center flex-wrap ga-2">
+              <v-chip size="x-small" color="primary" variant="flat">
+                Amount: {{ r.subsidy_amount }}
+              </v-chip>
+              <v-chip v-if="r.classification" size="x-small" color="secondary" variant="tonal">
+                {{ r.classification }}
+              </v-chip>
+              <v-chip size="x-small" color="info" variant="tonal">
+                {{ r.requirements.length }} requirements
+              </v-chip>
+              <span class="text-caption text-medium-emphasis ms-auto" v-if="r.created_at">
+                {{ new Date(r.created_at).toLocaleString() }}
+              </span>
+            </v-card-subtitle>
+          </v-card-item>
+          <v-divider />
+          <v-card-text class="d-flex flex-column ga-3">
+            <div v-if="r.description" class="text-body-2">{{ r.description }}</div>
+            <div v-if="r.requirements.length" class="d-flex flex-column ga-3">
+              <div
+                v-for="(req, idx) in r.requirements"
+                :key="req.id || idx"
+                class="rounded pa-3"
+                style="
+                  background: rgba(var(--v-theme-surface-variant), 0.45);
+                  border: 1px solid rgba(var(--v-border-color), 0.08);
+                "
+              >
+                <div class="text-body-2 font-weight-medium">
+                  {{ req.name }} <span class="text-caption">({{ req.type }})</span>
+                </div>
+                <div class="text-caption text-medium-emphasis">{{ requirementSummary(req) }}</div>
+              </div>
+            </div>
+            <div v-else class="text-caption text-medium-emphasis">No requirements linked.</div>
+          </v-card-text>
+          <v-divider />
+          <v-card-actions>
+            <v-btn
+              size="small"
+              variant="text"
+              color="primary"
+              prepend-icon="mdi-pencil"
+              @click="() => openEditRule(r)"
+              >Edit</v-btn
+            >
+            <v-btn
+              size="small"
+              variant="text"
+              color="error"
+              prepend-icon="mdi-delete"
+              @click="() => confirmRuleDelete(r.id)"
+              >Delete</v-btn
+            >
+            <v-spacer />
+            <v-tooltip text="Copy JSON" location="top">
+              <template #activator="{ props: p }">
+                <v-btn v-bind="p" icon size="small" @click="() => copyRule(r)">
+                  <v-icon size="18">mdi-content-copy</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+          </v-card-actions>
+        </v-card>
       </v-col>
     </v-row>
 

@@ -163,11 +163,25 @@ async function saveProgram() {
         }
       }
     }
+    // Rules can now be free-text statements (note) or structured. Require at least one of them.
     for (const rule of formRules.value) {
-      if (!rule.field?.toString().trim() || !rule.operator) {
-        throw new Error('Each rule must include a field and operator')
+      const hasStatement = !!rule.note && !!rule.note.toString().trim()
+      const hasStructured = !!rule.field?.toString().trim() && !!rule.operator
+      if (!hasStatement && !hasStructured) {
+        throw new Error('Each rule must be a statement or include field and operator')
       }
     }
+
+    // Persist rules as note-only objects in JSONB
+    const rulesPayload = (formRules.value || [])
+      .map((r) => {
+        const statement = (r.note || '').toString().trim()
+        const fallback = `${r.field || ''} ${r.operator || ''} ${r.value ?? ''}`.trim()
+        const note = statement || fallback
+        if (!note) return null
+        return { note }
+      })
+      .filter(Boolean) as Array<{ note: string }>
 
     const payload = {
       provider_id: isNaN(Number(props.providerId)) ? props.providerId : Number(props.providerId),
@@ -175,7 +189,7 @@ async function saveProgram() {
       category: formCategory.value.trim() || null,
       description: formDescription.value.trim() || null,
       requirements: formRequirements.value as unknown[],
-      rules: formRules.value as unknown[],
+      rules: rulesPayload as unknown[],
       updated_at: new Date().toISOString(),
     }
 
@@ -407,11 +421,11 @@ function saveReq() {
 // Rule dialog state and actions
 const ruleDialogOpen = ref(false)
 const ruleEditIndex = ref<number | null>(null)
-const ruleModel = ref<RuleItem>({ field: '', operator: 'equals', value: '' })
+const ruleModel = ref<RuleItem>({ field: '', operator: 'equals', value: '', note: '' })
 
 function openRuleDialog() {
   ruleEditIndex.value = null
-  ruleModel.value = { field: '', operator: 'equals', value: '' }
+  ruleModel.value = { field: '', operator: 'equals', value: '', note: '' }
   ruleDialogOpen.value = true
 }
 function editRule(index: number) {
@@ -425,8 +439,18 @@ function removeRule(index: number) {
   })
 }
 function saveRule() {
-  if (!ruleModel.value.field.trim() || !ruleModel.value.operator) return
-  const payload: RuleItem = { ...ruleModel.value }
+  // Accept statement-only rule via note; ignore structured fields if empty
+  const hasStatement = !!ruleModel.value.note && !!ruleModel.value.note.toString().trim()
+  const hasStructured = !!ruleModel.value.field.trim() && !!ruleModel.value.operator
+  if (!hasStatement && !hasStructured) return
+  const payload: RuleItem = hasStatement
+    ? {
+        field: '',
+        operator: 'equals',
+        value: null,
+        note: ruleModel.value.note?.toString().trim() || '',
+      }
+    : { ...ruleModel.value }
   const isAdding = ruleEditIndex.value === null
   const msg = isAdding ? 'Add this rule?' : 'Save changes to this rule?'
   requestConfirm(msg).then((ok) => {
@@ -557,7 +581,7 @@ function saveRule() {
               </tbody>
             </v-table>
 
-            <!-- Rules editor -->
+            <!-- Rules editor (statement-based, but supports legacy structured rules) -->
             <div class="d-flex align-center mb-2">
               <h4 class="text-subtitle-1 me-2">Rules</h4>
               <v-spacer />
@@ -573,20 +597,24 @@ function saveRule() {
             <v-table density="compact">
               <thead>
                 <tr>
-                  <th class="text-left">Field</th>
-                  <th class="text-left">Operator</th>
-                  <th class="text-left">Value</th>
+                  <th class="text-left">Rule</th>
                   <th class="text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="!formRules.length">
-                  <td colspan="4" class="text-medium-emphasis">No rules yet</td>
+                  <td colspan="2" class="text-medium-emphasis">No rules yet</td>
                 </tr>
                 <tr v-for="(rl, rIdx) in formRules" :key="rIdx">
-                  <td>{{ rl.field }}</td>
-                  <td>{{ rl.operator }}</td>
-                  <td>{{ stringifyValue(rl.value) }}</td>
+                  <td>
+                    <template v-if="rl.field && String(rl.field).trim()">
+                      {{ rl.field }} {{ rl.operator }} {{ stringifyValue(rl.value) }}
+                      <span v-if="rl.note" class="text-medium-emphasis"> — {{ rl.note }}</span>
+                    </template>
+                    <template v-else>
+                      {{ rl.note || '—' }}
+                    </template>
+                  </td>
                   <td class="text-right">
                     <v-btn size="x-small" variant="text" @click="editRule(rIdx)">Edit</v-btn>
                     <v-btn size="x-small" variant="text" color="error" @click="removeRule(rIdx)"
@@ -662,32 +690,23 @@ function saveRule() {
       </v-card>
     </v-dialog>
 
-    <!-- Rule Dialog -->
+    <!-- Rule Dialog (statement-based) -->
     <v-dialog v-model="ruleDialogOpen" max-width="560">
       <v-card>
         <v-card-title class="text-h6"
           >{{ ruleEditIndex === null ? 'Add' : 'Edit' }} rule</v-card-title
         >
         <v-card-text>
-          <v-row>
-            <v-col cols="12" sm="6">
-              <v-text-field v-model="ruleModel.field" label="Field" required />
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-select
-                :items="ruleOperators"
-                v-model="ruleModel.operator"
-                label="Operator"
-                required
-              />
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field v-model="ruleModel.value" label="Value" />
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field v-model="ruleModel.note" label="Note (optional)" />
-            </v-col>
-          </v-row>
+          <v-text-field
+            v-model="ruleModel.note"
+            label="Rule statement"
+            placeholder="e.g. You must be a student"
+            hide-details="auto"
+            autofocus
+          />
+          <div class="text-caption text-medium-emphasis mt-2">
+            Tip: Statements replace field/operator/value. Leave them blank.
+          </div>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
