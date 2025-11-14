@@ -59,6 +59,21 @@ const rulesString = computed(() => {
     .join(', ')
 })
 
+// Extract requirement descriptions into a single string for LLM upload context
+const requirements_for_LLM = computed(() => {
+  const reqs = (props.program.requirements || []) as RequirementItem[]
+  if (!reqs.length) return ''
+  return reqs
+    .map((r) => (r.description || '').toString().trim())
+    .filter(Boolean)
+    .join('\n')
+})
+
+onMounted(() => {
+  console.log('Rules:', props.program.rules)
+  console.log('requirements_for_LLM:', requirements_for_LLM.value)
+})
+
 // Program details dialog
 const programOpen = ref(false)
 
@@ -89,7 +104,8 @@ async function onFileChange(key: string, e: Event) {
     const fd = new FormData()
     fd.append('file', file)
     fd.append('doc_type', 'printed')
-    if (rulesString.value) fd.append('rules', rulesString.value)
+    // Upload requirement descriptions for LLM instead of rules
+    if (requirements_for_LLM.value) fd.append('requirements_for_LLM', requirements_for_LLM.value)
     const res = await fetch('http://127.0.0.1:5000/upload', { method: 'POST', body: fd })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || res.statusText)
@@ -146,7 +162,8 @@ async function submitCurrent() {
     }
     const extracted = {
       api_result: activeOcr.value,
-      rules: rulesString.value,
+      rules: rulesString.value, // kept for client display
+      requirements_for_LLM: requirements_for_LLM.value, // stored for traceability/debugging
       requirement_key: key,
     }
     await submissions.addDocument(
