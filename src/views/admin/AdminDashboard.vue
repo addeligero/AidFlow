@@ -209,6 +209,7 @@ const saveEdits = async () => {
           </v-card-subtitle>
           <v-card-text>
             <div class="text-caption mb-2">{{ p.description || 'No description' }}</div>
+            <hr />
             <div class="text-caption">Requirements: {{ p.requirements?.length || 0 }}</div>
             <div class="text-caption">Rules: {{ p.rules?.length || 0 }}</div>
           </v-card-text>
