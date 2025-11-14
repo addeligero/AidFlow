@@ -59,12 +59,18 @@ const rulesString = computed(() => {
     .join(', ')
 })
 
-// Extract requirement descriptions into a single string for LLM upload context
+// Extract requirement name + description into a single string for LLM upload context
 const requirements_for_LLM = computed(() => {
   const reqs = (props.program.requirements || []) as RequirementItem[]
   if (!reqs.length) return ''
   return reqs
-    .map((r) => (r.description || '').toString().trim())
+    .map((r) => {
+      const name = (r.name || '').toString().trim()
+      const desc = (r.description || '').toString().trim()
+      const details = desc || requirementLabel(r)
+      if (name && details) return `${name}: ${details}`
+      return name || details
+    })
     .filter(Boolean)
     .join('\n')
 })
@@ -419,26 +425,6 @@ onMounted(async () => {
         </v-list>
         <v-divider class="my-3" />
         <div class="text-subtitle-2 mb-2">Rules ({{ program.rules?.length || 0 }})</div>
-        <v-list density="compact" class="py-0">
-          <v-list-item v-for="(r, rIdx) in program.rules" :key="`detail-rule-${rIdx}`" class="px-0">
-            <v-list-item-title class="text-body-2">
-              <template v-if="r.field && String(r.field).trim()">
-                {{ r.field }} {{ r.operator }} {{ r.value }}
-              </template>
-              <template v-else>
-                {{ r.note || '—' }}
-              </template>
-            </v-list-item-title>
-            <v-list-item-subtitle v-if="r.field && String(r.field).trim()" class="text-caption">
-              {{ r.note }}
-            </v-list-item-subtitle>
-          </v-list-item>
-          <v-list-item v-if="!program.rules?.length" class="px-0">
-            <v-list-item-subtitle class="text-caption text-medium-emphasis"
-              >No rules</v-list-item-subtitle
-            >
-          </v-list-item>
-        </v-list>
       </v-card-text>
       <v-card-actions>
         <v-spacer />

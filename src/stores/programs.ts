@@ -84,7 +84,6 @@ export const useProgramsStore = defineStore('programs', () => {
   async function fetchPrograms() {
     if (loading.value) return
     loading.value = true
-
     try {
       const { data, error } = await supabase
         .from('programs')
@@ -92,55 +91,21 @@ export const useProgramsStore = defineStore('programs', () => {
           'id, provider_id, name, category, description, requirements, rules, created_at, updated_at',
         )
         .order('created_at', { ascending: false })
-
       if (error) throw error
-
       const rows = (data || []) as Array<Record<string, unknown>>
-
-      // 🆕 helper to convert requirement → rule (pulls description)
-      function requirementToRule(req: RequirementItem): RuleItem | null {
-        if (!req.description) return null
-
-        return {
-          field: req.name, // use requirement name as rule field
-          operator: 'exists', // default rule logic
-          value: true, // requirement must exist
-          note: req.description, // 🆕 put description into rule.note
-        }
-      }
-
-      programs.value = rows.map((row) => {
-        // Convert requirements JSONB → RequirementItem[]
-        const requirements = Array.isArray(row.requirements)
+      programs.value = rows.map((row) => ({
+        id: String(row.id as string | number),
+        provider_id: (row.provider_id as string | number)!,
+        name: asString(row.name),
+        category: (row.category as string | null | undefined) ?? null,
+        description: (row.description as string | null | undefined) ?? null,
+        requirements: Array.isArray(row.requirements)
           ? (row.requirements as unknown[]).map(toRequirementItem)
-          : []
-
-        // Convert existing rules JSONB → RuleItem[]
-        const existingRules = Array.isArray(row.rules)
-          ? (row.rules as unknown[]).map(toRuleItem)
-          : []
-
-        // 🆕 auto-generate rules from requirements.description
-        const extractedRules = requirements
-          .map(requirementToRule)
-          .filter((r): r is RuleItem => r !== null)
-
-        return {
-          id: String(row.id as string | number),
-          provider_id: (row.provider_id as string | number)!,
-          name: asString(row.name),
-          category: row.category ?? null,
-          description: row.description ?? null,
-
-          requirements, // unchanged
-
-          // 🆕 rules = existing rules + rules extracted from requirements
-          rules: [...existingRules, ...extractedRules],
-
-          created_at: row.created_at as string | undefined,
-          updated_at: row.updated_at as string | undefined,
-        }
-      })
+          : [],
+        rules: Array.isArray(row.rules) ? (row.rules as unknown[]).map(toRuleItem) : [],
+        created_at: row.created_at as string | undefined,
+        updated_at: row.updated_at as string | undefined,
+      }))
     } catch (e: unknown) {
       console.error('Failed to fetch programs:', e)
       programs.value = []
