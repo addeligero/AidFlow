@@ -55,6 +55,9 @@ const rulesString = computed(() => {
     .join(', ')
 })
 
+// Program details dialog
+const programOpen = ref(false)
+
 function keyForRequirement(r: RequirementItem, idx: number) {
   return `${r.type}-${r.name}-${idx}`
 }
@@ -229,9 +232,13 @@ onMounted(async () => {
 
 <template>
   <v-card class="mx-auto h-100 d-flex flex-column" elevation="8">
-    <v-card-title class="py-3">
-      <div class="text-subtitle-1 font-weight-medium">{{ program.name }}</div>
-      <div class="text-caption text-medium-emphasis">{{ program.category || 'Program' }}</div>
+    <v-card-title class="py-3 d-flex align-center">
+      <div>
+        <div class="text-subtitle-1 font-weight-medium">{{ program.name }}</div>
+        <div class="text-caption text-medium-emphasis">{{ program.category || 'Program' }}</div>
+      </div>
+      <v-spacer />
+      <v-btn size="small" variant="text" @click="programOpen = true">View</v-btn>
     </v-card-title>
     <v-divider />
     <v-card-text>
@@ -343,6 +350,71 @@ onMounted(async () => {
           @click="submitCurrent"
           >Submit</v-btn
         >
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- Program Details Dialog -->
+  <v-dialog v-model="programOpen" max-width="780">
+    <v-card>
+      <v-card-title class="text-h6">
+        {{ program.name }}
+      </v-card-title>
+      <v-card-text>
+        <div class="text-body-2 mb-2">
+          <strong>Category:</strong> {{ program.category || 'Program' }}
+        </div>
+        <div class="text-body-2 mb-4">
+          <strong>Description:</strong>
+          <span class="text-medium-emphasis">{{ program.description || 'No description' }}</span>
+        </div>
+        <v-divider class="my-3" />
+        <div class="text-subtitle-2 mb-2">
+          Requirements ({{ program.requirements?.length || 0 }})
+        </div>
+        <v-list density="compact" class="py-0">
+          <v-list-item
+            v-for="(req, idx) in program.requirements"
+            :key="`detail-req-${idx}`"
+            class="px-0"
+          >
+            <v-list-item-title class="text-body-2">{{ req.name }}</v-list-item-title>
+            <v-list-item-subtitle class="text-caption">
+              {{ requirementLabel(req) }}
+            </v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item v-if="!program.requirements?.length" class="px-0">
+            <v-list-item-subtitle class="text-caption text-medium-emphasis"
+              >No requirements</v-list-item-subtitle
+            >
+          </v-list-item>
+        </v-list>
+        <v-divider class="my-3" />
+        <div class="text-subtitle-2 mb-2">Rules ({{ program.rules?.length || 0 }})</div>
+        <v-list density="compact" class="py-0">
+          <v-list-item v-for="(r, rIdx) in program.rules" :key="`detail-rule-${rIdx}`" class="px-0">
+            <v-list-item-title class="text-body-2">
+              <template v-if="r.field && String(r.field).trim()">
+                {{ r.field }} {{ r.operator }} {{ r.value }}
+              </template>
+              <template v-else>
+                {{ r.note || '—' }}
+              </template>
+            </v-list-item-title>
+            <v-list-item-subtitle v-if="r.field && String(r.field).trim()" class="text-caption">
+              {{ r.note }}
+            </v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item v-if="!program.rules?.length" class="px-0">
+            <v-list-item-subtitle class="text-caption text-medium-emphasis"
+              >No rules</v-list-item-subtitle
+            >
+          </v-list-item>
+        </v-list>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="programOpen = false">Close</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
