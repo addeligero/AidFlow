@@ -480,6 +480,26 @@ onMounted(async () => {
         </v-list>
         <v-divider class="my-3" />
         <div class="text-subtitle-2 mb-2">Rules ({{ program.rules?.length || 0 }})</div>
+        <v-list density="compact" class="py-0">
+          <v-list-item v-for="(r, idx) in program.rules" :key="`detail-rule-${idx}`" class="px-0">
+            <v-list-item-title class="text-body-2">
+              <template v-if="r.field && String(r.field).trim()">
+                {{ r.field }} {{ r.operator }} {{ r.value }}
+              </template>
+              <template v-else>
+                {{ r.note || '—' }}
+              </template>
+            </v-list-item-title>
+            <v-list-item-subtitle v-if="r.field && String(r.field).trim()" class="text-caption">
+              {{ r.note }}
+            </v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item v-if="!program.rules?.length" class="px-0">
+            <v-list-item-subtitle class="text-caption text-medium-emphasis"
+              >No rules</v-list-item-subtitle
+            >
+          </v-list-item>
+        </v-list>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
