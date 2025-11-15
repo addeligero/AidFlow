@@ -19,7 +19,13 @@ type OcrResult = {
   rules?: string
   structured_output?: {
     document_type?: string
-    fields?: Record<string, string | number | boolean>
+    extracted_fields?: Record<string, string | number | boolean>
+    matched_requirement?: string
+    validation?: {
+      status?: string
+      missing_fields?: string[]
+      invalid_conditions?: string[]
+    }
   }
 }
 
@@ -114,6 +120,7 @@ async function onFileChange(key: string, e: Event) {
     if (requirements_for_LLM.value) fd.append('requirements_for_LLM', requirements_for_LLM.value)
     const res = await fetch('http://127.0.0.1:5000/upload', { method: 'POST', body: fd })
     const data = await res.json()
+    console.log('OCR upload response:', data)
     if (!res.ok) throw new Error(data.error || res.statusText)
     uploads.value[key].file = file
     uploads.value[key].ocr = data as OcrResult
@@ -358,19 +365,67 @@ onMounted(async () => {
         {{ activeOcr?.structured_output?.document_type || activeOcr?.doc_type || 'Unknown' }}
       </v-card-title>
       <v-card-text>
-        <div class="text-caption text-medium-emphasis mb-2">
-          These details are read automatically and cannot be edited.
+        <div class="text-caption text-medium-emphasis mb-3">
+          Review the automatically extracted information. If something is off, choose Resubmit to
+          try again.
         </div>
+        <div v-if="activeOcr?.structured_output?.matched_requirement" class="mb-2">
+          <strong>Matched Requirement:</strong>
+          <span class="text-medium-emphasis">{{
+            activeOcr?.structured_output?.matched_requirement
+          }}</span>
+        </div>
+        <v-divider class="my-2" />
+        <div class="text-subtitle-2 mb-1">Extracted Fields</div>
         <v-list density="compact" class="py-0">
           <v-list-item
-            v-for="(val, key) in activeOcr?.structured_output?.fields || {}"
+            v-for="(val, key) in activeOcr?.structured_output?.extracted_fields || {}"
             :key="String(key)"
             class="px-0"
           >
             <v-list-item-title class="text-body-2">{{ key }}</v-list-item-title>
             <v-list-item-subtitle class="text-caption">{{ String(val) }}</v-list-item-subtitle>
           </v-list-item>
+          <v-list-item
+            v-if="!Object.keys(activeOcr?.structured_output?.extracted_fields || {}).length"
+            class="px-0"
+          >
+            <v-list-item-subtitle class="text-caption text-medium-emphasis"
+              >No fields extracted.</v-list-item-subtitle
+            >
+          </v-list-item>
         </v-list>
+        <template v-if="activeOcr?.structured_output?.validation">
+          <v-divider class="my-3" />
+          <div class="text-subtitle-2 mb-1">Validation Summary</div>
+          <div class="mb-2 d-flex align-center ga-2">
+            <strong>Status:</strong>
+            <v-chip
+              size="small"
+              :color="
+                activeOcr?.structured_output?.validation?.status === 'passed' ? 'success' : 'error'
+              "
+              variant="tonal"
+            >
+              {{ activeOcr?.structured_output?.validation?.status || 'unknown' }}
+            </v-chip>
+          </div>
+          <div v-if="activeOcr?.structured_output?.validation?.missing_fields?.length" class="mb-2">
+            <strong>Missing Fields:</strong>
+            <span class="text-medium-emphasis">
+              {{ activeOcr?.structured_output?.validation?.missing_fields?.join(', ') }}
+            </span>
+          </div>
+          <div
+            v-if="activeOcr?.structured_output?.validation?.invalid_conditions?.length"
+            class="mb-2"
+          >
+            <strong>Invalid Conditions:</strong>
+            <span class="text-medium-emphasis">
+              {{ activeOcr?.structured_output?.validation?.invalid_conditions?.join(', ') }}
+            </span>
+          </div>
+        </template>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
