@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount, defineAsyncComponent } from 'vue'
+const RequirementDialog = defineAsyncComponent(() => import('./RequirementDialog.vue'))
+const RuleDialog = defineAsyncComponent(() => import('./RuleDialog.vue'))
 const ProgramEditorDialog = defineAsyncComponent(() => import('./ProgramEditorDialog.vue'))
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import supabase from '../../lib/Supabase'
@@ -32,30 +34,21 @@ const formDescription = ref('')
 
 // Structured editors: requirement and rule items
 type RequirementType = 'document' | 'condition'
-type RuleOperator =
-  | 'equals'
-  | 'not_equals'
-  | 'less_than'
-  | 'less_or_equal'
-  | 'greater_than'
-  | 'greater_or_equal'
-  | 'includes'
-  | 'exists'
 
 type RequirementItem = {
   type: RequirementType
   name: string
   description?: string | null
   field_key?: string | null
-  operator?: RuleOperator | null
+  operator?: ConditionOperator | null
   value?: string | number | boolean | null
 }
 
 type RuleItem = {
   field: string
-  operator: RuleOperator
   value: string | number | boolean | null
   note?: string | null
+  operator?: ConditionOperator | null
 }
 
 const formRequirements = ref<RequirementItem[]>([])
@@ -352,7 +345,18 @@ defineExpose({
 
 // Helpers and local state for structured editors
 const requirementTypes: RequirementType[] = ['document', 'condition']
-const ruleOperators: RuleOperator[] = [
+
+type ConditionOperator =
+  | 'equals'
+  | 'not_equals'
+  | 'less_than'
+  | 'less_or_equal'
+  | 'greater_than'
+  | 'greater_or_equal'
+  | 'includes'
+  | 'exists'
+
+const operatorItems: ConditionOperator[] = [
   'equals',
   'not_equals',
   'less_than',
@@ -369,21 +373,7 @@ function isRequirementType(v: unknown): v is RequirementType {
 function asRequirementType(v: unknown): RequirementType {
   return isRequirementType(v) ? v : 'document'
 }
-function isRuleOperator(v: unknown): v is RuleOperator {
-  return (
-    v === 'equals' ||
-    v === 'not_equals' ||
-    v === 'less_than' ||
-    v === 'less_or_equal' ||
-    v === 'greater_than' ||
-    v === 'greater_or_equal' ||
-    v === 'includes' ||
-    v === 'exists'
-  )
-}
-function asRuleOperator(v: unknown): RuleOperator {
-  return isRuleOperator(v) ? v : 'equals'
-}
+
 function asString(v: unknown, fallback = ''): string {
   if (typeof v === 'string') return v
   if (v === null || v === undefined) return fallback
@@ -397,7 +387,6 @@ function toRequirementItem(raw: unknown): RequirementItem {
     name: asString(r.name),
     description: (typeof r.description === 'string' ? r.description : null) as string | null,
     field_key: r.field_key ? asString(r.field_key) : null,
-    operator: r.operator ? asRuleOperator(r.operator) : null,
     value: (value as string | number | boolean | null | undefined) ?? null,
   }
 }
@@ -407,13 +396,10 @@ function toRuleItem(raw: unknown): RuleItem {
   const value = (r as Record<string, unknown>)['value']
   return {
     field: asString(r.field),
-    operator: asRuleOperator(r.operator),
     value: (value as string | number | boolean | null | undefined) ?? null,
     note: (typeof r.note === 'string' ? r.note : null) as string | null,
   }
 }
-
-// stringifyValue no longer used in parent after extracting editor
 
 // Requirement dialog state and actions
 const reqDialogOpen = ref(false)
@@ -518,6 +504,14 @@ function cancelRuleDialog() {
     if (ok) ruleDialogOpen.value = false
   })
 }
+
+// Dialog model update handlers for extracted components
+function onUpdateReqModel(v: RequirementItem) {
+  reqModel.value = v
+}
+function onUpdateRuleModel(v: { note?: string | null }) {
+  ruleModel.value = { ...ruleModel.value, note: v.note ?? ruleModel.value.note }
+}
 </script>
 
 <template>
@@ -585,6 +579,7 @@ function cancelRuleDialog() {
       </div>
     </v-alert>
 
+    <!-- Program Editor Dialog -->
     <ProgramEditorDialog
       :open="editorOpen"
       :is-edit="isEdit"
@@ -598,11 +593,11 @@ function cancelRuleDialog() {
       @update:category="(v) => (formCategory = v)"
       @update:description="(v) => (formDescription = v)"
       @add-req="openReqDialog()"
-      @edit-req="editReq"
-      @delete-req="removeReq"
+      @edit-req="(i) => editReq(i)"
+      @remove-req="(i) => removeReq(i)"
       @add-rule="openRuleDialog()"
-      @edit-rule="editRule"
-      @delete-rule="removeRule"
+      @edit-rule="(i) => editRule(i)"
+      @remove-rule="(i) => removeRule(i)"
       @cancel="cancelProgramEditor"
       @save="saveProgram"
     />
@@ -621,73 +616,24 @@ function cancelRuleDialog() {
     </v-dialog>
 
     <!-- Requirement Dialog -->
-    <v-dialog v-model="reqDialogOpen" max-width="560">
-      <v-card>
-        <v-card-title class="text-h6"
-          >{{ reqEditIndex === null ? 'Add' : 'Edit' }} requirement</v-card-title
-        >
-        <v-card-text>
-          <v-row>
-            <v-col cols="12" sm="6">
-              <v-select :items="requirementTypes" v-model="reqModel.type" label="Type" required />
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field v-model="reqModel.name" label="Name" required />
-            </v-col>
-            <v-col cols="12">
-              <v-textarea v-model="reqModel.description" label="Description" rows="2" />
-            </v-col>
-            <template v-if="reqModel.type === 'condition'">
-              <v-col cols="12" sm="6">
-                <v-text-field v-model="reqModel.field_key" label="Field key" required />
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-select
-                  :items="ruleOperators"
-                  v-model="reqModel.operator"
-                  label="Operator"
-                  required
-                />
-              </v-col>
-              <v-col cols="12">
-                <v-text-field v-model="reqModel.value" label="Value" />
-              </v-col>
-            </template>
-          </v-row>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="cancelReqDialog">Cancel</v-btn>
-          <v-btn color="primary" @click="saveReq">Save</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <RequirementDialog
+      :open="reqDialogOpen"
+      :model="reqModel"
+      :requirement-types="requirementTypes"
+      :operator-items="operatorItems"
+      @update:model="onUpdateReqModel"
+      @cancel="cancelReqDialog"
+      @save="saveReq"
+    />
 
     <!-- Rule Dialog (statement-based) -->
-    <v-dialog v-model="ruleDialogOpen" max-width="560">
-      <v-card>
-        <v-card-title class="text-h6"
-          >{{ ruleEditIndex === null ? 'Add' : 'Edit' }} rule</v-card-title
-        >
-        <v-card-text>
-          <v-text-field
-            v-model="ruleModel.note"
-            label="Rule statement"
-            placeholder="e.g. You must be a student"
-            hide-details="auto"
-            autofocus
-          />
-          <div class="text-caption text-medium-emphasis mt-2">
-            Tip: Statements replace field/operator/value. Leave them blank.
-          </div>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="cancelRuleDialog">Cancel</v-btn>
-          <v-btn color="primary" @click="saveRule">Save</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <RuleDialog
+      :open="ruleDialogOpen"
+      :model="ruleModel"
+      @update:model="onUpdateRuleModel"
+      @cancel="cancelRuleDialog"
+      @save="saveRule"
+    />
 
     <!-- Global Confirm Dialog -->
     <v-dialog v-model="confirmState.show" max-width="420">
