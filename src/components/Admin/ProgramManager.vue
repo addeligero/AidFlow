@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onBeforeUnmount, defineAsyncComponent } from 'vue'
+const ProgramEditorDialog = defineAsyncComponent(() => import('./ProgramEditorDialog.vue'))
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import supabase from '../../lib/Supabase'
 
@@ -60,6 +61,23 @@ type RuleItem = {
 const formRequirements = ref<RequirementItem[]>([])
 const formRules = ref<RuleItem[]>([])
 
+// Snapshot of original editor values to detect unsaved changes
+const originalProgramSnapshot = ref<string | null>(null)
+function makeProgramSnapshot() {
+  return JSON.stringify({
+    name: formName.value.trim(),
+    category: formCategory.value.trim(),
+    description: formDescription.value.trim(),
+    requirements: formRequirements.value.map((r) => ({ ...r })),
+    rules: formRules.value.map((r) => ({ ...r })),
+  })
+}
+function hasProgramUnsavedChanges() {
+  if (!editorOpen.value) return false
+  if (!originalProgramSnapshot.value) return false
+  return originalProgramSnapshot.value !== makeProgramSnapshot()
+}
+
 const confirmDeleteOpen = ref(false)
 const toDeleteId = ref<string | null>(null)
 
@@ -99,6 +117,7 @@ function openCreate() {
   currentId.value = null
   resetForm()
   editorOpen.value = true
+  originalProgramSnapshot.value = makeProgramSnapshot()
 }
 
 function openEdit(row: Program) {
@@ -112,6 +131,7 @@ function openEdit(row: Program) {
     : []
   formRules.value = Array.isArray(row.rules) ? (row.rules as unknown[]).map(toRuleItem) : []
   editorOpen.value = true
+  originalProgramSnapshot.value = makeProgramSnapshot()
 }
 
 function confirmDelete(id: string) {
@@ -203,6 +223,7 @@ async function saveProgram() {
       emit('notify', { text: 'Program created' })
     }
     editorOpen.value = false
+    originalProgramSnapshot.value = null
     await fetchPrograms()
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
@@ -211,6 +232,21 @@ async function saveProgram() {
   } finally {
     editorLoading.value = false
   }
+}
+
+// Cancel with confirmation if unsaved changes present
+function cancelProgramEditor() {
+  if (!hasProgramUnsavedChanges()) {
+    editorOpen.value = false
+    originalProgramSnapshot.value = null
+    return
+  }
+  requestConfirm('Discard unsaved program changes? This cannot be undone.').then((ok) => {
+    if (ok) {
+      editorOpen.value = false
+      originalProgramSnapshot.value = null
+    }
+  })
 }
 
 async function fetchPrograms() {
@@ -377,10 +413,7 @@ function toRuleItem(raw: unknown): RuleItem {
   }
 }
 
-function stringifyValue(v: unknown) {
-  if (typeof v === 'boolean' || typeof v === 'number') return String(v)
-  return (v as string) ?? ''
-}
+// stringifyValue no longer used in parent after extracting editor
 
 // Requirement dialog state and actions
 const reqDialogOpen = ref(false)
@@ -415,6 +448,20 @@ function saveReq() {
     if (isAdding) formRequirements.value.push(payload)
     else formRequirements.value.splice(reqEditIndex.value as number, 1, payload)
     reqDialogOpen.value = false
+  })
+}
+
+function cancelReqDialog() {
+  const changed =
+    !!reqModel.value.name.trim() ||
+    !!reqModel.value.description?.toString().trim() ||
+    !!reqModel.value.field_key?.toString().trim()
+  if (!changed) {
+    reqDialogOpen.value = false
+    return
+  }
+  requestConfirm('Discard requirement changes?').then((ok) => {
+    if (ok) reqDialogOpen.value = false
   })
 }
 
@@ -458,6 +505,17 @@ function saveRule() {
     if (isAdding) formRules.value.push(payload)
     else formRules.value.splice(ruleEditIndex.value as number, 1, payload)
     ruleDialogOpen.value = false
+  })
+}
+
+function cancelRuleDialog() {
+  const changed = !!ruleModel.value.note?.toString().trim() || !!ruleModel.value.field.trim()
+  if (!changed) {
+    ruleDialogOpen.value = false
+    return
+  }
+  requestConfirm('Discard rule changes?').then((ok) => {
+    if (ok) ruleDialogOpen.value = false
   })
 }
 </script>
@@ -527,112 +585,27 @@ function saveRule() {
       </div>
     </v-alert>
 
-    <!-- Program Editor Dialog -->
-    <v-dialog v-model="editorOpen" max-width="720">
-      <v-card>
-        <v-card-title class="text-h6">{{ isEdit ? 'Edit Program' : 'New Program' }}</v-card-title>
-        <v-card-text>
-          <v-form @submit.prevent="saveProgram">
-            <v-text-field v-model="formName" label="Program name" required />
-            <v-text-field v-model="formCategory" label="Category (optional)" />
-            <v-textarea v-model="formDescription" label="Description" rows="3" />
-            <v-divider class="my-3" />
-
-            <!-- Requirements editor -->
-            <div class="d-flex align-center mb-2">
-              <h4 class="text-subtitle-1 me-2">Requirements</h4>
-              <v-spacer />
-              <v-btn
-                size="x-small"
-                color="primary"
-                prepend-icon="mdi-plus"
-                @click="openReqDialog()"
-              >
-                Add requirement
-              </v-btn>
-            </div>
-            <v-table density="compact" class="mb-4">
-              <thead>
-                <tr>
-                  <th class="text-left">Type</th>
-                  <th class="text-left">Name</th>
-                  <th class="text-left">Details</th>
-                  <th class="text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="!formRequirements.length">
-                  <td colspan="4" class="text-medium-emphasis">No requirements yet</td>
-                </tr>
-                <tr v-for="(r, idx) in formRequirements" :key="idx">
-                  <td>{{ r.type }}</td>
-                  <td>{{ r.name }}</td>
-                  <td>
-                    <span v-if="r.type === 'document'">{{ r.description || '—' }}</span>
-                    <span v-else> {{ r.field_key }} {{ r.operator }} {{ r.value ?? '—' }} </span>
-                  </td>
-                  <td class="text-right">
-                    <v-btn size="x-small" variant="text" @click="editReq(idx)">Edit</v-btn>
-                    <v-btn size="x-small" variant="text" color="error" @click="removeReq(idx)"
-                      >Delete</v-btn
-                    >
-                  </td>
-                </tr>
-              </tbody>
-            </v-table>
-
-            <!-- Rules editor (statement-based, but supports legacy structured rules) -->
-            <div class="d-flex align-center mb-2">
-              <h4 class="text-subtitle-1 me-2">Rules</h4>
-              <v-spacer />
-              <v-btn
-                size="x-small"
-                color="primary"
-                prepend-icon="mdi-plus"
-                @click="openRuleDialog()"
-              >
-                Add rule
-              </v-btn>
-            </div>
-            <v-table density="compact">
-              <thead>
-                <tr>
-                  <th class="text-left">Rule</th>
-                  <th class="text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="!formRules.length">
-                  <td colspan="2" class="text-medium-emphasis">No rules yet</td>
-                </tr>
-                <tr v-for="(rl, rIdx) in formRules" :key="rIdx">
-                  <td>
-                    <template v-if="rl.field && String(rl.field).trim()">
-                      {{ rl.field }} {{ rl.operator }} {{ stringifyValue(rl.value) }}
-                      <span v-if="rl.note" class="text-medium-emphasis"> — {{ rl.note }}</span>
-                    </template>
-                    <template v-else>
-                      {{ rl.note || '—' }}
-                    </template>
-                  </td>
-                  <td class="text-right">
-                    <v-btn size="x-small" variant="text" @click="editRule(rIdx)">Edit</v-btn>
-                    <v-btn size="x-small" variant="text" color="error" @click="removeRule(rIdx)"
-                      >Delete</v-btn
-                    >
-                  </td>
-                </tr>
-              </tbody>
-            </v-table>
-          </v-form>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="editorOpen = false">Cancel</v-btn>
-          <v-btn color="primary" :loading="editorLoading" @click="saveProgram">Save</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <ProgramEditorDialog
+      :open="editorOpen"
+      :is-edit="isEdit"
+      :loading="editorLoading"
+      :name="formName"
+      :category="formCategory"
+      :description="formDescription"
+      :requirements="formRequirements"
+      :rules="formRules"
+      @update:name="(v) => (formName = v)"
+      @update:category="(v) => (formCategory = v)"
+      @update:description="(v) => (formDescription = v)"
+      @add-req="openReqDialog()"
+      @edit-req="editReq"
+      @delete-req="removeReq"
+      @add-rule="openRuleDialog()"
+      @edit-rule="editRule"
+      @delete-rule="removeRule"
+      @cancel="cancelProgramEditor"
+      @save="saveProgram"
+    />
 
     <!-- Program Delete Dialog -->
     <v-dialog v-model="confirmDeleteOpen" max-width="420">
@@ -684,7 +657,7 @@ function saveRule() {
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="reqDialogOpen = false">Cancel</v-btn>
+          <v-btn variant="text" @click="cancelReqDialog">Cancel</v-btn>
           <v-btn color="primary" @click="saveReq">Save</v-btn>
         </v-card-actions>
       </v-card>
@@ -710,7 +683,7 @@ function saveRule() {
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="ruleDialogOpen = false">Cancel</v-btn>
+          <v-btn variant="text" @click="cancelRuleDialog">Cancel</v-btn>
           <v-btn color="primary" @click="saveRule">Save</v-btn>
         </v-card-actions>
       </v-card>
