@@ -52,6 +52,7 @@ const emit = defineEmits([
   'remove-rule',
   'cancel',
   'save',
+  'train',
 ])
 
 function stringifyValue(v: unknown) {
@@ -177,6 +178,14 @@ function stringifyValue(v: unknown) {
       </v-card-text>
       <v-card-actions>
         <v-spacer />
+        <v-btn
+          variant="tonal"
+          color="secondary"
+          :disabled="!rules || rules.length === 0"
+          @click="emit('train')"
+        >
+          Train
+        </v-btn>
         <v-btn variant="text" @click="emit('cancel')">Cancel</v-btn>
         <v-btn color="primary" :loading="loading" @click="emit('save')">Save</v-btn>
       </v-card-actions>

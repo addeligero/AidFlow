@@ -512,6 +512,54 @@ function onUpdateReqModel(v: RequirementItem) {
 function onUpdateRuleModel(v: { note?: string | null }) {
   ruleModel.value = { ...ruleModel.value, note: v.note ?? ruleModel.value.note }
 }
+
+// Train flow state
+type TrainExtractResponse = {
+  status: 'success' | 'fail'
+  numbered_notes?: string[]
+  rules_for_generator?: string
+  rules_json?: Array<{ label: string; rule: string }>
+  rules_text?: string
+  error?: string
+}
+const trainConfirmOpen = ref(false)
+const trainRunning = ref(false)
+const trainResultOpen = ref(false)
+const trainResult = ref<TrainExtractResponse | null>(null)
+
+function openTrainConfirm() {
+  if (!formRules.value || formRules.value.length === 0) {
+    emit('notify', { text: 'Add at least one rule before training', color: 'error' })
+    return
+  }
+  trainConfirmOpen.value = true
+}
+
+async function runTrainExtract() {
+  trainRunning.value = true
+  try {
+    const payload = formRules.value
+    const res = await fetch('http://localhost:5000/rules/extract', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const data = (await res.json()) as TrainExtractResponse
+    trainResult.value = data
+    if (!res.ok || data.status !== 'success') {
+      emit('notify', { text: data.error || 'Training failed', color: 'error' })
+    } else {
+      emit('notify', { text: 'Rules extracted successfully' })
+    }
+    trainConfirmOpen.value = false
+    trainResultOpen.value = true
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    emit('notify', { text: msg, color: 'error' })
+  } finally {
+    trainRunning.value = false
+  }
+}
 </script>
 
 <template>
@@ -600,6 +648,7 @@ function onUpdateRuleModel(v: { note?: string | null }) {
       @remove-rule="(i) => removeRule(i)"
       @cancel="cancelProgramEditor"
       @save="saveProgram"
+      @train="openTrainConfirm()"
     />
 
     <!-- Program Delete Dialog -->
@@ -644,6 +693,74 @@ function onUpdateRuleModel(v: { note?: string | null }) {
           <v-spacer />
           <v-btn variant="text" @click="confirmNo">No</v-btn>
           <v-btn color="primary" @click="confirmYes">Yes</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Train Confirm Dialog -->
+    <v-dialog v-model="trainConfirmOpen" max-width="640">
+      <v-card>
+        <v-card-title class="text-h6">Confirm Training</v-card-title>
+        <v-card-text>
+          <div class="mb-2">You are about to train with the following rules:</div>
+          <v-list density="compact" v-if="formRules.length">
+            <v-list-item
+              v-for="(rl, idx) in formRules"
+              :key="idx"
+              :title="
+                rl.note ||
+                (rl.field ? rl.field + ' ' + (rl.operator || '') + ' ' + (rl.value ?? '') : '—')
+              "
+            />
+          </v-list>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="trainConfirmOpen = false">Cancel</v-btn>
+          <v-btn color="primary" :loading="trainRunning" @click="runTrainExtract">Train</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Train Result Dialog (friendly view) -->
+    <v-dialog v-model="trainResultOpen" max-width="720">
+      <v-card>
+        <v-card-title class="text-h6">Training Result</v-card-title>
+        <v-card-text>
+          <div v-if="trainResult?.status === 'success'">
+            <div class="mb-3">
+              <div class="text-subtitle-2 mb-1">Summary</div>
+              <div>{{ trainResult?.rules_text || '—' }}</div>
+            </div>
+            <div class="mb-3" v-if="trainResult?.rules_for_generator">
+              <div class="text-subtitle-2 mb-1">Generator Guidance</div>
+              <div>{{ trainResult?.rules_for_generator }}</div>
+            </div>
+            <div class="mb-3" v-if="trainResult?.rules_json?.length">
+              <div class="text-subtitle-2 mb-1">Labeled Rules</div>
+              <v-list density="compact">
+                <v-list-item v-for="(r, i) in trainResult?.rules_json" :key="i">
+                  <v-list-item-title>
+                    <strong>{{ r.label }}:</strong> {{ r.rule }}
+                  </v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </div>
+            <div class="mb-1" v-if="trainResult?.numbered_notes?.length">
+              <div class="text-subtitle-2 mb-1">Numbered Notes</div>
+              <ol class="ms-4">
+                <li v-for="(n, i) in trainResult?.numbered_notes" :key="i">{{ n }}</li>
+              </ol>
+            </div>
+          </div>
+          <v-alert v-else type="error" variant="tonal">
+            {{ trainResult?.error || 'Training failed. Please try again.' }}
+          </v-alert>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="trainResultOpen = false">Try Again</v-btn>
+          <v-btn color="primary" @click="trainResultOpen = false">Confirm</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
