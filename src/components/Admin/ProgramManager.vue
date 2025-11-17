@@ -688,7 +688,7 @@ async function runTrainExtract() {
     <v-dialog v-model="confirmState.show" max-width="420">
       <v-card>
         <v-card-title class="text-h6">Please confirm</v-card-title>
-        <v-card-text>{{ confirmState.message }}</v-card-text>
+        <v-card-text class="text-wrap">{{ confirmState.message }}</v-card-text>
         <v-card-actions>
           <v-spacer />
           <v-btn variant="text" @click="confirmNo">No</v-btn>
@@ -701,17 +701,17 @@ async function runTrainExtract() {
     <v-dialog v-model="trainConfirmOpen" max-width="640">
       <v-card>
         <v-card-title class="text-h6">Confirm Training</v-card-title>
-        <v-card-text>
+        <v-card-text class="wrap-content">
           <div class="mb-2">You are about to train with the following rules:</div>
           <v-list density="compact" v-if="formRules.length">
-            <v-list-item
-              v-for="(rl, idx) in formRules"
-              :key="idx"
-              :title="
-                rl.note ||
-                (rl.field ? rl.field + ' ' + (rl.operator || '') + ' ' + (rl.value ?? '') : '—')
-              "
-            />
+            <v-list-item v-for="(rl, idx) in formRules" :key="idx">
+              <v-list-item-title class="wrap-text">
+                {{
+                  rl.note ||
+                  (rl.field ? rl.field + ' ' + (rl.operator || '') + ' ' + (rl.value ?? '') : '—')
+                }}
+              </v-list-item-title>
+            </v-list-item>
           </v-list>
         </v-card-text>
         <v-card-actions>
@@ -726,21 +726,21 @@ async function runTrainExtract() {
     <v-dialog v-model="trainResultOpen" max-width="720">
       <v-card>
         <v-card-title class="text-h6">Training Result</v-card-title>
-        <v-card-text>
+        <v-card-text class="wrap-content">
           <div v-if="trainResult?.status === 'success'">
             <div class="mb-3">
               <div class="text-subtitle-2 mb-1">Summary</div>
-              <div>{{ trainResult?.rules_text || '—' }}</div>
+              <div class="wrap-text">{{ trainResult?.rules_text || '—' }}</div>
             </div>
             <div class="mb-3" v-if="trainResult?.rules_for_generator">
               <div class="text-subtitle-2 mb-1">Generator Guidance</div>
-              <div>{{ trainResult?.rules_for_generator }}</div>
+              <div class="wrap-text">{{ trainResult?.rules_for_generator }}</div>
             </div>
             <div class="mb-3" v-if="trainResult?.rules_json?.length">
               <div class="text-subtitle-2 mb-1">Labeled Rules</div>
               <v-list density="compact">
                 <v-list-item v-for="(r, i) in trainResult?.rules_json" :key="i">
-                  <v-list-item-title>
+                  <v-list-item-title class="wrap-text">
                     <strong>{{ r.label }}:</strong> {{ r.rule }}
                   </v-list-item-title>
                 </v-list-item>
@@ -749,7 +749,9 @@ async function runTrainExtract() {
             <div class="mb-1" v-if="trainResult?.numbered_notes?.length">
               <div class="text-subtitle-2 mb-1">Numbered Notes</div>
               <ol class="ms-4">
-                <li v-for="(n, i) in trainResult?.numbered_notes" :key="i">{{ n }}</li>
+                <li v-for="(n, i) in trainResult?.numbered_notes" :key="i" class="wrap-text">
+                  {{ n }}
+                </li>
               </ol>
             </div>
           </div>
@@ -766,3 +768,15 @@ async function runTrainExtract() {
     </v-dialog>
   </div>
 </template>
+
+<style scoped>
+.wrap-content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.wrap-text {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+</style>
