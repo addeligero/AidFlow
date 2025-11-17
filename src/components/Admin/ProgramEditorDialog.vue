@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, defineEmits } from 'vue'
+import { defineProps, defineEmits, ref } from 'vue'
 
 type RequirementType = 'document' | 'condition'
 
@@ -29,7 +29,7 @@ type RuleItem = {
   operator?: ConditionOperator | null
 }
 
-defineProps<{
+const props = defineProps<{
   open: boolean
   isEdit: boolean
   loading: boolean
@@ -44,12 +44,8 @@ const emit = defineEmits([
   'update:name',
   'update:category',
   'update:description',
-  'add-req',
-  'edit-req',
-  'remove-req',
-  'add-rule',
-  'edit-rule',
-  'remove-rule',
+  'update:requirements',
+  'update:rules',
   'cancel',
   'save',
   'train',
@@ -58,6 +54,104 @@ const emit = defineEmits([
 function stringifyValue(v: unknown) {
   if (typeof v === 'boolean' || typeof v === 'number') return String(v)
   return (v as string) ?? ''
+}
+
+// Internal dialog state for requirements
+const reqDialogOpen = ref(false)
+const reqEditIndex = ref<number | null>(null)
+const reqModel = ref<RequirementItem>({ type: 'document', name: '', description: '' })
+
+function openAddRequirement() {
+  reqEditIndex.value = null
+  reqModel.value = { type: 'document', name: '', description: '' }
+  reqDialogOpen.value = true
+}
+function openEditRequirement(idx: number) {
+  reqEditIndex.value = idx
+  reqModel.value = { ...props.requirements[idx] }
+  reqDialogOpen.value = true
+}
+function confirmSaveRequirement() {
+  if (!reqModel.value.name.trim()) return
+  if (reqModel.value.type === 'condition') {
+    if (!reqModel.value.field_key?.toString().trim() || !reqModel.value.operator) return
+  }
+  const list = [...props.requirements]
+  if (reqEditIndex.value === null) list.push({ ...reqModel.value })
+  else list.splice(reqEditIndex.value, 1, { ...reqModel.value })
+  emit('update:requirements', list)
+  reqDialogOpen.value = false
+}
+function removeRequirement(idx: number) {
+  const list = [...props.requirements]
+  list.splice(idx, 1)
+  emit('update:requirements', list)
+}
+function cancelRequirement() {
+  const changed = !!reqModel.value.name.trim() || !!reqModel.value.description?.toString().trim()
+  if (!changed) {
+    reqDialogOpen.value = false
+    return
+  }
+  reqDialogOpen.value = false // Simple discard without global confirm (keeps component self-contained)
+}
+
+// Internal dialog state for rules (statement-based)
+const ruleDialogOpen = ref(false)
+const ruleEditIndex = ref<number | null>(null)
+const ruleModel = ref<RuleItem>({ field: '', operator: 'equals', value: '', note: '' })
+
+function openAddRule() {
+  ruleEditIndex.value = null
+  ruleModel.value = { field: '', operator: 'equals', value: '', note: '' }
+  ruleDialogOpen.value = true
+}
+
+// Helper setters to avoid TS casts in template
+function setReqType(v: string) {
+  reqModel.value.type = v as RequirementType
+}
+function setReqOperator(v: string) {
+  reqModel.value.operator = v as ConditionOperator
+}
+function setRuleOperator(v: string) {
+  ruleModel.value.operator = v as ConditionOperator
+}
+function openEditRule(idx: number) {
+  ruleEditIndex.value = idx
+  ruleModel.value = { ...props.rules[idx] }
+  ruleDialogOpen.value = true
+}
+function confirmSaveRule() {
+  const hasStatement = !!ruleModel.value.note && !!ruleModel.value.note.toString().trim()
+  const hasStructured = !!ruleModel.value.field.trim() && !!ruleModel.value.operator
+  if (!hasStatement && !hasStructured) return
+  const payload: RuleItem = hasStatement
+    ? {
+        field: '',
+        operator: 'equals',
+        value: null,
+        note: ruleModel.value.note?.toString().trim() || '',
+      }
+    : { ...ruleModel.value }
+  const list = [...props.rules]
+  if (ruleEditIndex.value === null) list.push(payload)
+  else list.splice(ruleEditIndex.value, 1, payload)
+  emit('update:rules', list)
+  ruleDialogOpen.value = false
+}
+function removeRule(idx: number) {
+  const list = [...props.rules]
+  list.splice(idx, 1)
+  emit('update:rules', list)
+}
+function cancelRule() {
+  const changed = !!ruleModel.value.note?.toString().trim() || !!ruleModel.value.field.trim()
+  if (!changed) {
+    ruleDialogOpen.value = false
+    return
+  }
+  ruleDialogOpen.value = false
 }
 </script>
 
@@ -90,7 +184,12 @@ function stringifyValue(v: unknown) {
           <div class="d-flex align-center mb-2">
             <h4 class="text-subtitle-1 me-2">Requirements</h4>
             <v-spacer />
-            <v-btn size="x-small" color="primary" prepend-icon="mdi-plus" @click="emit('add-req')">
+            <v-btn
+              size="x-small"
+              color="primary"
+              prepend-icon="mdi-plus"
+              @click="openAddRequirement()"
+            >
               Add requirement
             </v-btn>
           </div>
@@ -104,10 +203,10 @@ function stringifyValue(v: unknown) {
               </tr>
             </thead>
             <tbody>
-              <tr v-if="!requirements.length">
+              <tr v-if="!props.requirements.length">
                 <td colspan="4" class="text-medium-emphasis">No requirements yet</td>
               </tr>
-              <tr v-for="(r, idx) in requirements" :key="idx">
+              <tr v-for="(r, idx) in props.requirements" :key="idx">
                 <td>{{ r.type }}</td>
                 <td>{{ r.name }}</td>
                 <td>
@@ -117,12 +216,14 @@ function stringifyValue(v: unknown) {
                   </span>
                 </td>
                 <td class="text-right">
-                  <v-btn size="x-small" variant="text" @click="emit('edit-req', idx)">Edit</v-btn>
+                  <v-btn size="x-small" variant="text" @click="openEditRequirement(idx)"
+                    >Edit</v-btn
+                  >
                   <v-btn
                     size="x-small"
                     variant="text"
                     color="error"
-                    @click="emit('remove-req', idx)"
+                    @click="removeRequirement(idx)"
                   >
                     Delete
                   </v-btn>
@@ -135,7 +236,7 @@ function stringifyValue(v: unknown) {
           <div class="d-flex align-center mb-2">
             <h4 class="text-subtitle-1 me-2">Rules</h4>
             <v-spacer />
-            <v-btn size="x-small" color="primary" prepend-icon="mdi-plus" @click="emit('add-rule')">
+            <v-btn size="x-small" color="primary" prepend-icon="mdi-plus" @click="openAddRule()">
               Add rule
             </v-btn>
           </div>
@@ -147,10 +248,10 @@ function stringifyValue(v: unknown) {
               </tr>
             </thead>
             <tbody>
-              <tr v-if="!rules.length">
+              <tr v-if="!props.rules.length">
                 <td colspan="2" class="text-medium-emphasis">No rules yet</td>
               </tr>
-              <tr v-for="(rl, rIdx) in rules" :key="rIdx">
+              <tr v-for="(rl, rIdx) in props.rules" :key="rIdx">
                 <td>
                   <template v-if="rl.field && String(rl.field).trim()">
                     {{ rl.field }} {{ rl.operator }} {{ stringifyValue(rl.value) }}
@@ -161,13 +262,8 @@ function stringifyValue(v: unknown) {
                   </template>
                 </td>
                 <td class="text-right">
-                  <v-btn size="x-small" variant="text" @click="emit('edit-rule', rIdx)">Edit</v-btn>
-                  <v-btn
-                    size="x-small"
-                    variant="text"
-                    color="error"
-                    @click="emit('remove-rule', rIdx)"
-                  >
+                  <v-btn size="x-small" variant="text" @click="openEditRule(rIdx)">Edit</v-btn>
+                  <v-btn size="x-small" variant="text" color="error" @click="removeRule(rIdx)">
                     Delete
                   </v-btn>
                 </td>
@@ -181,13 +277,126 @@ function stringifyValue(v: unknown) {
         <v-btn
           variant="tonal"
           color="secondary"
-          :disabled="!rules || rules.length === 0"
+          :disabled="!props.rules || props.rules.length === 0"
           @click="emit('train')"
         >
           Train
         </v-btn>
         <v-btn variant="text" @click="emit('cancel')">Cancel</v-btn>
         <v-btn color="primary" :loading="loading" @click="emit('save')">Save</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- Requirement Dialog -->
+  <v-dialog v-model="reqDialogOpen" max-width="520">
+    <v-card>
+      <v-card-title class="text-h6">{{
+        reqEditIndex === null ? 'Add Requirement' : 'Edit Requirement'
+      }}</v-card-title>
+      <v-card-text>
+        <v-select
+          label="Type"
+          :items="['document', 'condition']"
+          :model-value="reqModel.type"
+          @update:modelValue="setReqType"
+        />
+        <v-text-field
+          label="Name"
+          :model-value="reqModel.name"
+          @update:modelValue="(v) => (reqModel.name = v)"
+          required
+        />
+        <template v-if="reqModel.type === 'document'">
+          <v-textarea
+            label="Description"
+            rows="3"
+            :model-value="reqModel.description || ''"
+            @update:modelValue="(v) => (reqModel.description = v)"
+          />
+        </template>
+        <template v-else>
+          <v-text-field
+            label="Field Key"
+            :model-value="reqModel.field_key || ''"
+            @update:modelValue="(v) => (reqModel.field_key = v)"
+          />
+          <v-select
+            label="Operator"
+            :items="[
+              'equals',
+              'not_equals',
+              'less_than',
+              'less_or_equal',
+              'greater_than',
+              'greater_or_equal',
+              'includes',
+              'exists',
+            ]"
+            :model-value="reqModel.operator"
+            @update:modelValue="setReqOperator"
+          />
+          <v-text-field
+            label="Value"
+            :model-value="reqModel.value"
+            @update:modelValue="(v) => (reqModel.value = v)"
+          />
+        </template>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="cancelRequirement">Cancel</v-btn>
+        <v-btn color="primary" @click="confirmSaveRequirement">Save</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- Rule Dialog -->
+  <v-dialog v-model="ruleDialogOpen" max-width="520">
+    <v-card>
+      <v-card-title class="text-h6">{{
+        ruleEditIndex === null ? 'Add Rule' : 'Edit Rule'
+      }}</v-card-title>
+      <v-card-text>
+        <v-textarea
+          label="Statement (preferred)"
+          rows="4"
+          :model-value="ruleModel.note || ''"
+          @update:modelValue="(v) => (ruleModel.note = v)"
+          placeholder="e.g. Applicant must be at least 21 years old"
+        />
+        <v-divider class="my-4" />
+        <div class="text-caption mb-2">Optional structured fields (legacy)</div>
+        <v-text-field
+          label="Field"
+          :model-value="ruleModel.field"
+          @update:modelValue="(v) => (ruleModel.field = v)"
+        />
+        <v-select
+          label="Operator"
+          :items="[
+            'equals',
+            'not_equals',
+            'less_than',
+            'less_or_equal',
+            'greater_than',
+            'greater_or_equal',
+            'includes',
+            'exists',
+          ]"
+          :model-value="ruleModel.operator"
+          @update:modelValue="setRuleOperator"
+        />
+        <v-text-field
+          label="Value"
+          :model-value="ruleModel.value"
+          @update:modelValue="(v) => (ruleModel.value = v)"
+        />
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="cancelRule">Cancel</v-btn>
+        <v-btn color="primary" @click="confirmSaveRule">Save</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount, defineAsyncComponent } from 'vue'
-const RequirementDialog = defineAsyncComponent(() => import('./RequirementDialog.vue'))
-const RuleDialog = defineAsyncComponent(() => import('./RuleDialog.vue'))
 const ProgramEditorDialog = defineAsyncComponent(() => import('./ProgramEditorDialog.vue'))
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import supabase from '../../lib/Supabase'
@@ -53,6 +51,12 @@ type RuleItem = {
 
 const formRequirements = ref<RequirementItem[]>([])
 const formRules = ref<RuleItem[]>([])
+function setRequirements(v: RequirementItem[]) {
+  formRequirements.value = v
+}
+function setRules(v: RuleItem[]) {
+  formRules.value = v
+}
 
 // Snapshot of original editor values to detect unsaved changes
 const originalProgramSnapshot = ref<string | null>(null)
@@ -344,8 +348,6 @@ defineExpose({
 })
 
 // Helpers and local state for structured editors
-const requirementTypes: RequirementType[] = ['document', 'condition']
-
 type ConditionOperator =
   | 'equals'
   | 'not_equals'
@@ -355,17 +357,6 @@ type ConditionOperator =
   | 'greater_or_equal'
   | 'includes'
   | 'exists'
-
-const operatorItems: ConditionOperator[] = [
-  'equals',
-  'not_equals',
-  'less_than',
-  'less_or_equal',
-  'greater_than',
-  'greater_or_equal',
-  'includes',
-  'exists',
-]
 
 function isRequirementType(v: unknown): v is RequirementType {
   return v === 'document' || v === 'condition'
@@ -401,117 +392,7 @@ function toRuleItem(raw: unknown): RuleItem {
   }
 }
 
-// Requirement dialog state and actions
-const reqDialogOpen = ref(false)
-const reqEditIndex = ref<number | null>(null)
-const reqModel = ref<RequirementItem>({ type: 'document', name: '', description: '' })
-
-function openReqDialog() {
-  reqEditIndex.value = null
-  reqModel.value = { type: 'document', name: '', description: '' }
-  reqDialogOpen.value = true
-}
-function editReq(index: number) {
-  reqEditIndex.value = index
-  reqModel.value = { ...formRequirements.value[index] }
-  reqDialogOpen.value = true
-}
-function removeReq(index: number) {
-  requestConfirm('Remove this requirement?').then((ok) => {
-    if (ok) formRequirements.value.splice(index, 1)
-  })
-}
-function saveReq() {
-  if (!reqModel.value.name.trim()) return
-  if (reqModel.value.type === 'condition') {
-    if (!reqModel.value.field_key?.toString().trim() || !reqModel.value.operator) return
-  }
-  const payload: RequirementItem = { ...reqModel.value }
-  const isAdding = reqEditIndex.value === null
-  const msg = isAdding ? 'Add this requirement?' : 'Save changes to this requirement?'
-  requestConfirm(msg).then((ok) => {
-    if (!ok) return
-    if (isAdding) formRequirements.value.push(payload)
-    else formRequirements.value.splice(reqEditIndex.value as number, 1, payload)
-    reqDialogOpen.value = false
-  })
-}
-
-function cancelReqDialog() {
-  const changed =
-    !!reqModel.value.name.trim() ||
-    !!reqModel.value.description?.toString().trim() ||
-    !!reqModel.value.field_key?.toString().trim()
-  if (!changed) {
-    reqDialogOpen.value = false
-    return
-  }
-  requestConfirm('Discard requirement changes?').then((ok) => {
-    if (ok) reqDialogOpen.value = false
-  })
-}
-
-// Rule dialog state and actions
-const ruleDialogOpen = ref(false)
-const ruleEditIndex = ref<number | null>(null)
-const ruleModel = ref<RuleItem>({ field: '', operator: 'equals', value: '', note: '' })
-
-function openRuleDialog() {
-  ruleEditIndex.value = null
-  ruleModel.value = { field: '', operator: 'equals', value: '', note: '' }
-  ruleDialogOpen.value = true
-}
-function editRule(index: number) {
-  ruleEditIndex.value = index
-  ruleModel.value = { ...formRules.value[index] }
-  ruleDialogOpen.value = true
-}
-function removeRule(index: number) {
-  requestConfirm('Remove this rule?').then((ok) => {
-    if (ok) formRules.value.splice(index, 1)
-  })
-}
-function saveRule() {
-  // Accept statement-only rule via note; ignore structured fields if empty
-  const hasStatement = !!ruleModel.value.note && !!ruleModel.value.note.toString().trim()
-  const hasStructured = !!ruleModel.value.field.trim() && !!ruleModel.value.operator
-  if (!hasStatement && !hasStructured) return
-  const payload: RuleItem = hasStatement
-    ? {
-        field: '',
-        operator: 'equals',
-        value: null,
-        note: ruleModel.value.note?.toString().trim() || '',
-      }
-    : { ...ruleModel.value }
-  const isAdding = ruleEditIndex.value === null
-  const msg = isAdding ? 'Add this rule?' : 'Save changes to this rule?'
-  requestConfirm(msg).then((ok) => {
-    if (!ok) return
-    if (isAdding) formRules.value.push(payload)
-    else formRules.value.splice(ruleEditIndex.value as number, 1, payload)
-    ruleDialogOpen.value = false
-  })
-}
-
-function cancelRuleDialog() {
-  const changed = !!ruleModel.value.note?.toString().trim() || !!ruleModel.value.field.trim()
-  if (!changed) {
-    ruleDialogOpen.value = false
-    return
-  }
-  requestConfirm('Discard rule changes?').then((ok) => {
-    if (ok) ruleDialogOpen.value = false
-  })
-}
-
-// Dialog model update handlers for extracted components
-function onUpdateReqModel(v: RequirementItem) {
-  reqModel.value = v
-}
-function onUpdateRuleModel(v: { note?: string | null }) {
-  ruleModel.value = { ...ruleModel.value, note: v.note ?? ruleModel.value.note }
-}
+// Requirement & Rule dialogs now embedded inside ProgramEditorDialog; arrays updated via emitted events.
 
 // Train flow state
 type TrainExtractResponse = {
@@ -526,6 +407,17 @@ const trainConfirmOpen = ref(false)
 const trainRunning = ref(false)
 const trainResultOpen = ref(false)
 const trainResult = ref<TrainExtractResponse | null>(null)
+// Model training state
+type ModelTrainResponse = {
+  status: 'success' | 'fail'
+  program_id?: string | number
+  accuracy?: number
+  feature_schema?: string[]
+  file_path?: string
+  error?: string
+}
+const modelTraining = ref(false)
+const modelTrainResponse = ref<ModelTrainResponse | null>(null)
 
 function openTrainConfirm() {
   if (!formRules.value || formRules.value.length === 0) {
@@ -558,6 +450,43 @@ async function runTrainExtract() {
     emit('notify', { text: msg, color: 'error' })
   } finally {
     trainRunning.value = false
+  }
+}
+
+async function runModelTraining() {
+  if (!currentId.value) {
+    emit('notify', { text: 'Save the program before training the model', color: 'error' })
+    return
+  }
+  if (!trainResult.value?.rules_json || trainResult.value.rules_json.length === 0) {
+    emit('notify', { text: 'No labeled rules to train model', color: 'error' })
+    return
+  }
+  modelTraining.value = true
+  modelTrainResponse.value = null
+  try {
+    const payloadToSend = { program_id: currentId.value, rules: trainResult.value.rules_json }
+    console.log('[train_model] submitting payload:', payloadToSend)
+    const res = await fetch('http://localhost:5000/train_model', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payloadToSend),
+    })
+    const data = (await res.json()) as ModelTrainResponse
+    console.log('[train_model] response:', data)
+    modelTrainResponse.value = data
+    if (!res.ok || data.status !== 'success') {
+      emit('notify', { text: data.error || 'Model training failed', color: 'error' })
+    } else {
+      const acc = typeof data.accuracy === 'number' ? (data.accuracy * 100).toFixed(1) : 'N/A'
+      emit('notify', { text: `Model trained (accuracy ${acc}%)` })
+    }
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    emit('notify', { text: msg, color: 'error' })
+    modelTrainResponse.value = { status: 'fail', error: msg }
+  } finally {
+    modelTraining.value = false
   }
 }
 </script>
@@ -640,12 +569,8 @@ async function runTrainExtract() {
       @update:name="(v) => (formName = v)"
       @update:category="(v) => (formCategory = v)"
       @update:description="(v) => (formDescription = v)"
-      @add-req="openReqDialog()"
-      @edit-req="(i) => editReq(i)"
-      @remove-req="(i) => removeReq(i)"
-      @add-rule="openRuleDialog()"
-      @edit-rule="(i) => editRule(i)"
-      @remove-rule="(i) => removeRule(i)"
+      @update:requirements="setRequirements"
+      @update:rules="setRules"
       @cancel="cancelProgramEditor"
       @save="saveProgram"
       @train="openTrainConfirm()"
@@ -664,25 +589,7 @@ async function runTrainExtract() {
       </v-card>
     </v-dialog>
 
-    <!-- Requirement Dialog -->
-    <RequirementDialog
-      :open="reqDialogOpen"
-      :model="reqModel"
-      :requirement-types="requirementTypes"
-      :operator-items="operatorItems"
-      @update:model="onUpdateReqModel"
-      @cancel="cancelReqDialog"
-      @save="saveReq"
-    />
-
-    <!-- Rule Dialog (statement-based) -->
-    <RuleDialog
-      :open="ruleDialogOpen"
-      :model="ruleModel"
-      @update:model="onUpdateRuleModel"
-      @cancel="cancelRuleDialog"
-      @save="saveRule"
-    />
+    <!-- Requirement & Rule dialogs moved inside ProgramEditorDialog -->
 
     <!-- Global Confirm Dialog -->
     <v-dialog v-model="confirmState.show" max-width="420">
@@ -754,6 +661,31 @@ async function runTrainExtract() {
                 </li>
               </ol>
             </div>
+            <div class="mb-3" v-if="modelTrainResponse">
+              <div class="text-subtitle-2 mb-1">Model Training</div>
+              <template v-if="modelTrainResponse.status === 'success'">
+                <div class="wrap-text mb-1">
+                  Accuracy:
+                  <strong> {{ ((modelTrainResponse.accuracy ?? 0) * 100).toFixed(1) }}% </strong>
+                </div>
+                <div
+                  class="wrap-text mb-1"
+                  v-if="
+                    modelTrainResponse.feature_schema && modelTrainResponse.feature_schema.length
+                  "
+                >
+                  Features: {{ modelTrainResponse.feature_schema.join(', ') }}
+                </div>
+                <div class="wrap-text mb-1" v-if="modelTrainResponse.file_path">
+                  Saved to: {{ modelTrainResponse.file_path }}
+                </div>
+              </template>
+              <template v-else>
+                <v-alert type="error" variant="tonal" density="compact" class="wrap-text">
+                  {{ modelTrainResponse.error || 'Model training failed.' }}
+                </v-alert>
+              </template>
+            </div>
           </div>
           <v-alert v-else type="error" variant="tonal">
             {{ trainResult?.error || 'Training failed. Please try again.' }}
@@ -762,7 +694,14 @@ async function runTrainExtract() {
         <v-card-actions>
           <v-spacer />
           <v-btn variant="text" @click="trainResultOpen = false">Try Again</v-btn>
-          <v-btn color="primary" @click="trainResultOpen = false">Confirm</v-btn>
+          <v-btn
+            v-if="!modelTrainResponse"
+            color="primary"
+            :loading="modelTraining"
+            @click="runModelTraining()"
+            >Confirm & Train Model</v-btn
+          >
+          <v-btn v-else color="primary" @click="trainResultOpen = false">Close</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
