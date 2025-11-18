@@ -468,7 +468,7 @@ onMounted(async () => {
             class="px-0"
           >
             <v-list-item-title class="text-body-2">{{ req.name }}</v-list-item-title>
-            <v-list-item-subtitle class="text-caption">
+            <v-list-item-subtitle class="text-caption requirement-subtitle">
               {{ requirementLabel(req) }}
             </v-list-item-subtitle>
           </v-list-item>
@@ -487,7 +487,7 @@ onMounted(async () => {
                 {{ r.field }} {{ r.operator }} {{ r.value }}
               </template>
               <template v-else>
-                {{ r.note || '—' }}
+                <span class="text-wrap">{{ r.note || '—' }}</span>
               </template>
             </v-list-item-title>
             <v-list-item-subtitle v-if="r.field && String(r.field).trim()" class="text-caption">
@@ -512,5 +512,15 @@ onMounted(async () => {
 <style scoped>
 .ga-2 {
   gap: 0.5rem;
+}
+/* Ensure requirement subtitles wrap and do not show ellipsis */
+:deep(.requirement-subtitle) {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  display: block !important;
+  word-break: break-word;
+  /* Remove any max-width constraints inherited */
+  max-width: 100% !important;
 }
 </style>
