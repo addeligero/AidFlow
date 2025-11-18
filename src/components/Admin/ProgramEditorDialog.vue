@@ -38,6 +38,7 @@ const props = defineProps<{
   description: string
   requirements: RequirementItem[]
   rules: RuleItem[]
+  hasTrainedModel?: boolean
 }>()
 
 const emit = defineEmits([
@@ -49,6 +50,7 @@ const emit = defineEmits([
   'cancel',
   'save',
   'train',
+  'view-trained',
 ])
 
 function stringifyValue(v: unknown) {
@@ -275,12 +277,16 @@ function cancelRule() {
       <v-card-actions>
         <v-spacer />
         <v-btn
+          v-if="!props.hasTrainedModel"
           variant="tonal"
           color="secondary"
           :disabled="!props.rules || props.rules.length === 0"
           @click="emit('train')"
         >
           Train
+        </v-btn>
+        <v-btn v-else variant="tonal" color="secondary" @click="emit('view-trained')">
+          View Trained Model
         </v-btn>
         <v-btn variant="text" @click="emit('cancel')">Cancel</v-btn>
         <v-btn color="primary" :loading="loading" @click="emit('save')">Save</v-btn>

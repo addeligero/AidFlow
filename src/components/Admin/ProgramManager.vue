@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount, defineAsyncComponent } from 'vue'
+import { useProgramsStore } from '../../stores/programs'
 const ProgramEditorDialog = defineAsyncComponent(() => import('./ProgramEditorDialog.vue'))
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import supabase from '../../lib/Supabase'
@@ -18,7 +19,8 @@ type Program = {
   updated_at?: string
 }
 
-const programs = ref<Program[]>([])
+const store = useProgramsStore()
+const programs = computed<Program[]>(() => (store.programs as unknown as Program[]) || [])
 const loading = ref(false)
 const errorMsg = ref('')
 
@@ -29,6 +31,19 @@ const currentId = ref<string | null>(null)
 const formName = ref('')
 const formCategory = ref('')
 const formDescription = ref('')
+type LatestTrainingSaved = {
+  id: number
+  program_id: number
+  accuracy: number | null
+  features: string[] | null
+  rules_summary: string | null
+  notes: string | null
+  model_path: string | null
+  csv_path: string | null
+  created_at: string
+} | null
+const latestTrainingSaved = ref<LatestTrainingSaved>(null)
+const viewTrainedOpen = ref(false)
 
 // Structured editors: requirement and rule items
 type RequirementType = 'document' | 'condition'
@@ -129,6 +144,8 @@ function openEdit(row: Program) {
   formRules.value = Array.isArray(row.rules) ? (row.rules as unknown[]).map(toRuleItem) : []
   editorOpen.value = true
   originalProgramSnapshot.value = makeProgramSnapshot()
+  // Load latest training result using wrapper (handles missing method)
+  loadLatestTraining(row.id)
 }
 
 function confirmDelete(id: string) {
@@ -141,12 +158,7 @@ async function deleteProgram() {
   try {
     const ok = await requestConfirm('Delete this program? This cannot be undone.')
     if (!ok) return
-    const { error } = await supabase
-      .from('programs')
-      .delete()
-      .eq('id', toDeleteId.value)
-      .eq('provider_id', props.providerId)
-    if (error) throw error
+    await store.deleteProgram(toDeleteId.value, props.providerId)
     confirmDeleteOpen.value = false
     toDeleteId.value = null
     await fetchPrograms()
@@ -211,12 +223,10 @@ async function saveProgram() {
     }
 
     if (isEdit.value && currentId.value) {
-      const { error } = await supabase.from('programs').update(payload).eq('id', currentId.value)
-      if (error) throw error
+      await store.updateProgram(currentId.value, payload)
       emit('notify', { text: 'Program updated' })
     } else {
-      const { error } = await supabase.from('programs').insert([payload])
-      if (error) throw error
+      await store.createProgram(payload)
       emit('notify', { text: 'Program created' })
     }
     editorOpen.value = false
@@ -248,46 +258,16 @@ function cancelProgramEditor() {
 
 async function fetchPrograms() {
   if (!props.providerId) {
-    programs.value = []
+    store.clearPrograms()
     return
   }
   loading.value = true
   errorMsg.value = ''
   try {
-    const { data, error } = await supabase
-      .from('programs')
-      .select(
-        'id, provider_id, name, category, description, requirements, rules, created_at, updated_at',
-      )
-      .eq('provider_id', props.providerId)
-      .order('created_at', { ascending: false })
-    if (error) throw error
-    type RowProgram = {
-      id: string | number
-      provider_id: string | number
-      name: string
-      category?: string | null
-      description?: string | null
-      requirements?: unknown[] | null
-      rules?: unknown[] | null
-      created_at?: string
-      updated_at?: string
-    }
-    programs.value = ((data || []) as RowProgram[]).map((row) => ({
-      id: String(row.id),
-      provider_id: row.provider_id,
-      name: row.name,
-      category: row.category,
-      description: row.description,
-      requirements: row.requirements ?? [],
-      rules: row.rules ?? [],
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-    })) as Program[]
+    await store.fetchProgramsByProvider(props.providerId)
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
     errorMsg.value = msg
-    programs.value = []
   } finally {
     loading.value = false
   }
@@ -318,7 +298,7 @@ watch(
   () => props.providerId,
   async () => {
     if (!props.providerId) {
-      programs.value = []
+      store.clearPrograms()
       if (channel.value) {
         channel.value.unsubscribe()
         channel.value = null
@@ -421,6 +401,7 @@ type ModelTrainResponse = {
 const modelTraining = ref(false)
 const modelTrainResponse = ref<ModelTrainResponse | null>(null)
 const csvPreviewOpen = ref(false)
+const trainedCsvContent = ref<string | null>(null)
 
 function openCsvPreview() {
   if (!modelTrainResponse.value?.csv) {
@@ -450,6 +431,36 @@ function downloadCsv() {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     emit('notify', { text: msg, color: 'error' })
+  }
+}
+
+// Persist successful training outcome for later review
+async function saveTrainingResultToDb() {
+  if (
+    !currentId.value ||
+    !modelTrainResponse.value ||
+    modelTrainResponse.value.status !== 'success'
+  )
+    return
+  try {
+    const programIdNum = Number(currentId.value)
+    await store.saveTrainingResult({
+      program_id: Number.isNaN(programIdNum) ? (currentId.value as string) : programIdNum,
+      accuracy: modelTrainResponse.value.accuracy ?? null,
+      feature_schema: modelTrainResponse.value.feature_schema ?? null,
+      rules_text: trainResult.value?.rules_text ?? null,
+      rules_for_generator: trainResult.value?.rules_for_generator ?? null,
+      numbered_notes: trainResult.value?.numbered_notes ?? null,
+      file_path: modelTrainResponse.value.file_path ?? null,
+      csv_path: modelTrainResponse.value.csv_path ?? null,
+    })
+    // Refresh latest saved
+    latestTrainingSaved.value = await store.fetchLatestTrainingResult(currentId.value)
+    emit('notify', { text: 'Training result saved' })
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('Failed to save training result:', msg)
+    emit('notify', { text: `Failed to save training result: ${msg}`, color: 'error' })
   }
 }
 
@@ -514,6 +525,7 @@ async function runModelTraining() {
     } else {
       const acc = typeof data.accuracy === 'number' ? (data.accuracy * 100).toFixed(1) : 'N/A'
       emit('notify', { text: `Model trained (accuracy ${acc}%)` })
+      // Saving is now performed explicitly by the user via the Confirm button
     }
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
@@ -521,6 +533,116 @@ async function runModelTraining() {
     modelTrainResponse.value = { status: 'fail', error: msg }
   } finally {
     modelTraining.value = false
+  }
+}
+
+// Wrapper to safely load latest training result even if store method missing (hot-reload fallback)
+async function loadLatestTraining(programId: string | number) {
+  try {
+    // TS-safe access
+    const maybeFn = (
+      store as unknown as {
+        fetchLatestTrainingResult?: (id: string | number) => Promise<LatestTrainingSaved>
+      }
+    ).fetchLatestTrainingResult
+    if (typeof maybeFn === 'function') {
+      latestTrainingSaved.value = await maybeFn(programId)
+      return
+    }
+    // Fallback direct query if method not present
+    const { data, error } = await supabase
+      .from('model_training_results')
+      .select(
+        'id, program_id, accuracy, features, rules_summary, notes, model_path, csv_path, created_at',
+      )
+      .eq('program_id', programId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (error && error.details !== 'Results contain 0 rows') throw error
+    latestTrainingSaved.value = (data as LatestTrainingSaved) || null
+  } catch (e) {
+    console.warn('Failed to load latest training result:', e)
+    latestTrainingSaved.value = null
+  }
+}
+
+// Confirmation wrappers for training result dialog actions
+function requestActionConfirm(message: string, action: () => void) {
+  requestConfirm(message).then((ok) => {
+    if (ok) action()
+  })
+}
+
+function onTrainingResultClose() {
+  requestActionConfirm('Close the training result dialog?', () => {
+    trainResultOpen.value = false
+  })
+}
+function onTrainingResultRetry() {
+  requestActionConfirm('Discard current training result and start again?', () => {
+    trainResultOpen.value = false
+    openTrainConfirm()
+  })
+}
+function onTrainingResultConfirmSave() {
+  if (!modelTrainResponse.value || modelTrainResponse.value.status !== 'success') return
+  requestActionConfirm('Save this trained model result to the database?', () => {
+    saveTrainingResultToDb()
+  })
+}
+
+// Fetch CSV for previously saved training result (view trained model dialog)
+async function fetchSavedCsv() {
+  trainedCsvContent.value = null
+  const path = latestTrainingSaved.value?.csv_path
+  if (!path) return
+  try {
+    // Assume backend serves raw file at /<path> or /files/<path>; try direct first
+    const urlCandidates = [`http://localhost:5000/${path}`, `http://localhost:5000/files/${path}`]
+    for (const u of urlCandidates) {
+      try {
+        const res = await fetch(u)
+        if (res.ok) {
+          trainedCsvContent.value = await res.text()
+          return
+        }
+      } catch {
+        // continue trying next candidate
+      }
+    }
+  } catch (e) {
+    console.warn('CSV fetch failed:', e)
+  }
+}
+
+function openViewTrained() {
+  viewTrainedOpen.value = true
+  fetchSavedCsv()
+}
+
+function downloadSavedCsv() {
+  const path = latestTrainingSaved.value?.csv_path
+  if (!path) {
+    emit('notify', { text: 'No CSV path available', color: 'error' })
+    return
+  }
+  if (trainedCsvContent.value) {
+    const blob = new Blob([trainedCsvContent.value], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = path.split('/').pop() || 'training.csv'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 0)
+  } else {
+    emit('notify', { text: 'CSV content not loaded; attempting fetch', color: 'info' })
+    fetchSavedCsv().then(() => {
+      if (trainedCsvContent.value) downloadSavedCsv()
+      else emit('notify', { text: 'Unable to fetch CSV file', color: 'error' })
+    })
   }
 }
 </script>
@@ -600,6 +722,7 @@ async function runModelTraining() {
       :description="formDescription"
       :requirements="formRequirements"
       :rules="formRules"
+      :has-trained-model="!!latestTrainingSaved"
       @update:name="(v) => (formName = v)"
       @update:category="(v) => (formCategory = v)"
       @update:description="(v) => (formDescription = v)"
@@ -608,6 +731,7 @@ async function runModelTraining() {
       @cancel="cancelProgramEditor"
       @save="saveProgram"
       @train="openTrainConfirm()"
+      @view-trained="openViewTrained"
     />
 
     <!-- Program Delete Dialog -->
@@ -673,10 +797,7 @@ async function runModelTraining() {
               <div class="text-subtitle-2 mb-1">Summary</div>
               <div class="wrap-text">{{ trainResult?.rules_text || '—' }}</div>
             </div>
-            <div class="mb-3" v-if="trainResult?.rules_for_generator">
-              <div class="text-subtitle-2 mb-1">Generator Guidance</div>
-              <div class="wrap-text">{{ trainResult?.rules_for_generator }}</div>
-            </div>
+            <div class="mb-3" v-if="trainResult?.rules_for_generator"></div>
             <div class="mb-3" v-if="trainResult?.rules_json?.length">
               <div class="text-subtitle-2 mb-1">Labeled Rules</div>
               <v-list density="compact">
@@ -690,9 +811,11 @@ async function runModelTraining() {
             <div class="mb-1" v-if="trainResult?.numbered_notes?.length">
               <div class="text-subtitle-2 mb-1">Numbered Notes</div>
               <ol class="ms-4">
-                <li v-for="(n, i) in trainResult?.numbered_notes" :key="i" class="wrap-text">
-                  {{ n }}
-                </li>
+                <ol v-for="(n, i) in trainResult?.numbered_notes" :key="i" class="wrap-text">
+                  {{
+                    n
+                  }}
+                </ol>
               </ol>
             </div>
             <div class="mb-3" v-if="modelTrainResponse">
@@ -734,7 +857,7 @@ async function runModelTraining() {
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="trainResultOpen = false">Try Again</v-btn>
+          <v-btn variant="text" @click="onTrainingResultRetry">Try Again</v-btn>
           <v-btn
             v-if="!modelTrainResponse"
             color="primary"
@@ -742,7 +865,79 @@ async function runModelTraining() {
             @click="runModelTraining()"
             >Confirm & Train Model</v-btn
           >
-          <v-btn v-else color="primary" @click="trainResultOpen = false">Close</v-btn>
+          <v-btn v-else variant="tonal" color="primary" @click="onTrainingResultConfirmSave">
+            Confirm
+          </v-btn>
+          <v-btn v-if="modelTrainResponse" color="primary" @click="onTrainingResultClose">
+            Close
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- View Trained Model Dialog -->
+    <v-dialog v-model="viewTrainedOpen" max-width="720">
+      <v-card>
+        <v-card-title class="text-h6">Trained Model</v-card-title>
+        <v-card-text class="wrap-content">
+          <div v-if="latestTrainingSaved">
+            <div class="wrap-text mb-1">
+              Accuracy:
+              <strong>
+                {{
+                  latestTrainingSaved.accuracy != null
+                    ? (latestTrainingSaved.accuracy * 100).toFixed(1) + '%'
+                    : '—'
+                }}
+              </strong>
+            </div>
+            <div class="wrap-text mb-1" v-if="latestTrainingSaved.features?.length">
+              Features: {{ latestTrainingSaved.features.join(', ') }}
+            </div>
+            <div class="mb-2" v-if="latestTrainingSaved.rules_summary">
+              <div class="text-subtitle-2 mb-1">Summary</div>
+              <div class="wrap-text">{{ latestTrainingSaved.rules_summary }}</div>
+            </div>
+            <div class="mb-2" v-if="latestTrainingSaved.notes">
+              <div class="text-subtitle-2 mb-1">Notes</div>
+              <pre class="wrap-text">{{ latestTrainingSaved.notes }}</pre>
+            </div>
+            <div class="wrap-text mb-1" v-if="latestTrainingSaved.model_path">
+              Model Path: {{ latestTrainingSaved.model_path }}
+            </div>
+            <div class="wrap-text mb-1" v-if="latestTrainingSaved.csv_path">
+              Data CSV: {{ latestTrainingSaved.csv_path }}
+            </div>
+            <div class="d-flex gap-2 mb-2" v-if="latestTrainingSaved.csv_path">
+              <v-btn
+                size="x-small"
+                variant="tonal"
+                @click="
+                  fetchSavedCsv()
+                  csvPreviewOpen = true
+                "
+                >Preview CSV</v-btn
+              >
+              <v-btn size="x-small" color="primary" @click="downloadSavedCsv">Download CSV</v-btn>
+            </div>
+            <div class="text-caption mt-2">Trained at: {{ latestTrainingSaved.created_at }}</div>
+          </div>
+          <v-alert v-else type="info" variant="tonal">No training found.</v-alert>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn
+            variant="tonal"
+            color="secondary"
+            @click="
+              () => {
+                viewTrainedOpen = false
+                openTrainConfirm()
+              }
+            "
+            >Retrain</v-btn
+          >
+          <v-btn color="primary" @click="viewTrainedOpen = false">Close</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -752,12 +947,17 @@ async function runModelTraining() {
       <v-card>
         <v-card-title class="text-h6">Training CSV Preview</v-card-title>
         <v-card-text class="wrap-content">
-          <pre class="wrap-text">{{ modelTrainResponse?.csv }}</pre>
+          <pre class="wrap-text">{{ trainedCsvContent || modelTrainResponse?.csv }}</pre>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
           <v-btn variant="text" @click="csvPreviewOpen = false">Close</v-btn>
-          <v-btn color="primary" @click="downloadCsv">Download CSV</v-btn>
+          <v-btn v-if="modelTrainResponse?.csv" color="primary" @click="downloadCsv"
+            >Download CSV</v-btn
+          >
+          <v-btn v-else-if="trainedCsvContent" color="primary" @click="downloadSavedCsv"
+            >Download CSV</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
