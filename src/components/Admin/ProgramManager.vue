@@ -414,10 +414,44 @@ type ModelTrainResponse = {
   accuracy?: number
   feature_schema?: string[]
   file_path?: string
+  csv_path?: string
+  csv?: string
   error?: string
 }
 const modelTraining = ref(false)
 const modelTrainResponse = ref<ModelTrainResponse | null>(null)
+const csvPreviewOpen = ref(false)
+
+function openCsvPreview() {
+  if (!modelTrainResponse.value?.csv) {
+    emit('notify', { text: 'No CSV available to preview', color: 'error' })
+    return
+  }
+  csvPreviewOpen.value = true
+}
+
+function downloadCsv() {
+  const csv = modelTrainResponse.value?.csv
+  if (!csv) {
+    emit('notify', { text: 'No CSV available to download', color: 'error' })
+    return
+  }
+  try {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const filename = (modelTrainResponse.value?.csv_path?.split('/')?.pop()) || 'synthetic.csv'
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 0)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    emit('notify', { text: msg, color: 'error' })
+  }
+}
 
 function openTrainConfirm() {
   if (!formRules.value || formRules.value.length === 0) {
@@ -679,6 +713,13 @@ async function runModelTraining() {
                 <div class="wrap-text mb-1" v-if="modelTrainResponse.file_path">
                   Saved to: {{ modelTrainResponse.file_path }}
                 </div>
+                <div class="wrap-text mb-2" v-if="modelTrainResponse.csv_path">
+                  Data CSV: {{ modelTrainResponse.csv_path }}
+                </div>
+                <div class="d-flex gap-2 mb-1" v-if="modelTrainResponse.csv">
+                  <v-btn size="x-small" variant="tonal" @click="openCsvPreview">Preview CSV</v-btn>
+                  <v-btn size="x-small" color="primary" @click="downloadCsv">Download CSV</v-btn>
+                </div>
               </template>
               <template v-else>
                 <v-alert type="error" variant="tonal" density="compact" class="wrap-text">
@@ -702,6 +743,21 @@ async function runModelTraining() {
             >Confirm & Train Model</v-btn
           >
           <v-btn v-else color="primary" @click="trainResultOpen = false">Close</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    
+    <!-- CSV Preview Dialog -->
+    <v-dialog v-model="csvPreviewOpen" max-width="840">
+      <v-card>
+        <v-card-title class="text-h6">Training CSV Preview</v-card-title>
+        <v-card-text class="wrap-content">
+          <pre class="wrap-text">{{ modelTrainResponse?.csv }}</pre>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="csvPreviewOpen = false">Close</v-btn>
+          <v-btn color="primary" @click="downloadCsv">Download CSV</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
