@@ -593,32 +593,9 @@ function onTrainingResultConfirmSave() {
 }
 
 // Fetch CSV for previously saved training result (view trained model dialog)
-async function fetchSavedCsv() {
-  trainedCsvContent.value = null
-  const path = latestTrainingSaved.value?.csv_path
-  if (!path) return
-  try {
-    // Assume backend serves raw file at /<path> or /files/<path>; try direct first
-    const urlCandidates = [`http://localhost:5000/${path}`, `http://localhost:5000/files/${path}`]
-    for (const u of urlCandidates) {
-      try {
-        const res = await fetch(u)
-        if (res.ok) {
-          trainedCsvContent.value = await res.text()
-          return
-        }
-      } catch {
-        // continue trying next candidate
-      }
-    }
-  } catch (e) {
-    console.warn('CSV fetch failed:', e)
-  }
-}
 
 function openViewTrained() {
   viewTrainedOpen.value = true
-  fetchSavedCsv()
 }
 
 function downloadSavedCsv() {
@@ -639,10 +616,6 @@ function downloadSavedCsv() {
     setTimeout(() => URL.revokeObjectURL(url), 0)
   } else {
     emit('notify', { text: 'CSV content not loaded; attempting fetch', color: 'info' })
-    fetchSavedCsv().then(() => {
-      if (trainedCsvContent.value) downloadSavedCsv()
-      else emit('notify', { text: 'Unable to fetch CSV file', color: 'error' })
-    })
   }
 }
 </script>
@@ -908,18 +881,7 @@ function downloadSavedCsv() {
             <div class="wrap-text mb-1" v-if="latestTrainingSaved.csv_path">
               Data CSV: {{ latestTrainingSaved.csv_path }}
             </div>
-            <div class="d-flex gap-2 mb-2" v-if="latestTrainingSaved.csv_path">
-              <v-btn
-                size="x-small"
-                variant="tonal"
-                @click="
-                  fetchSavedCsv()
-                  csvPreviewOpen = true
-                "
-                >Preview CSV</v-btn
-              >
-              <v-btn size="x-small" color="primary" @click="downloadSavedCsv">Download CSV</v-btn>
-            </div>
+            <div class="d-flex gap-2 mb-2" v-if="latestTrainingSaved.csv_path"></div>
             <div class="text-caption mt-2">Trained at: {{ latestTrainingSaved.created_at }}</div>
           </div>
           <v-alert v-else type="info" variant="tonal">No training found.</v-alert>
