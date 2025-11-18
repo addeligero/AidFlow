@@ -440,7 +440,7 @@ function downloadCsv() {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    const filename = (modelTrainResponse.value?.csv_path?.split('/')?.pop()) || 'synthetic.csv'
+    const filename = modelTrainResponse.value?.csv_path?.split('/')?.pop() || 'synthetic.csv'
     a.href = url
     a.download = filename
     document.body.appendChild(a)
@@ -746,7 +746,7 @@ async function runModelTraining() {
         </v-card-actions>
       </v-card>
     </v-dialog>
-    
+
     <!-- CSV Preview Dialog -->
     <v-dialog v-model="csvPreviewOpen" max-width="840">
       <v-card>
