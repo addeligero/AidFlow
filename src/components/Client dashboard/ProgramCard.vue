@@ -3,6 +3,12 @@ import { ref, computed, type ComponentPublicInstance } from 'vue'
 import type { Program, RequirementItem, RuleItem } from '../../stores/programs'
 import { useUserStore } from '../../stores/users'
 import { useSubmissionsStore } from '../../stores/submissions'
+import { useProgramsStore } from '../../stores/programs'
+
+interface TrainingResultLike {
+  feature_schema?: string[] | Record<string, unknown>
+  features?: string[] | Record<string, unknown>
+}
 
 const props = defineProps<{ program: Program }>()
 
@@ -88,6 +94,110 @@ onMounted(() => {
 
 // Program details dialog
 const programOpen = ref(false)
+
+// Prediction state
+const predictOpen = ref(false)
+const mappingLoading = ref(false)
+const mappingError = ref<string | null>(null)
+const mappedFeatures = ref<Record<string, unknown> | null>(null)
+const featureSchema = ref<string[] | Record<string, unknown> | null>(null)
+
+const programsStore = useProgramsStore()
+
+// Determine if all requirements have a submitted document
+const allRequirementsSubmitted = computed(() => {
+  const reqs = (props.program.requirements || []) as RequirementItem[]
+  if (!reqs.length) return false
+  return reqs.every((r, idx) => {
+    const key = keyForRequirement(r, idx)
+    return !!existingDocs.value[key]
+  })
+})
+
+async function predictEligibility() {
+  if (mappingLoading.value) return
+  mappingLoading.value = true
+  mappingError.value = null
+  mappedFeatures.value = null
+  // Attempt to fetch latest training result to obtain feature schema
+  try {
+    const training = await programsStore.fetchLatestTrainingResult(
+      props.program.id as string | number,
+    )
+    const schemaCandidate =
+      (training as TrainingResultLike)?.feature_schema || (training as TrainingResultLike)?.features
+    if (schemaCandidate) {
+      featureSchema.value = schemaCandidate as string[] | Record<string, unknown>
+    }
+  } catch (e) {
+    console.warn('Failed to fetch training result for feature schema', e)
+  }
+  // Aggregate extracted OCR data per requirement
+  const extractedAggregate: Record<string, unknown> = {}
+  for (const [key, meta] of Object.entries(existingDocs.value)) {
+    extractedAggregate[key] = meta.extracted?.api_result || {}
+  }
+  const payload: Record<string, unknown> = {
+    program_id: props.program.id,
+    extracted_data: extractedAggregate,
+  }
+  if (featureSchema.value) payload.features = featureSchema.value
+  console.log('[Predict] Submitting payload to /features/map:', payload)
+  try {
+    const res = await fetch('http://localhost:5000/features/map', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json()
+    console.log('[Predict] Response from /features/map:', data)
+    if (!res.ok || data.status !== 'success') {
+      mappingError.value = data.error || data.llm_error || res.statusText
+    } else {
+      mappedFeatures.value = data.features || null
+      featureSchema.value = data.feature_schema || featureSchema.value
+    }
+    predictOpen.value = true
+  } catch (err: unknown) {
+    mappingError.value = err instanceof Error ? err.message : String(err)
+  } finally {
+    mappingLoading.value = false
+  }
+}
+
+// Human-readable mapping of feature output
+const cleanedFeatures = computed(() => {
+  if (!mappedFeatures.value) return [] as Array<{ key: string; label: string; value: unknown }>
+  return Object.entries(mappedFeatures.value)
+    .filter(([k]) => !['eligible', 'prediction'].includes(k))
+    .map(([key, value]) => {
+      const label = key
+        .replace(/_/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+      return { key, label, value }
+    })
+})
+
+const missingFeatures = computed(() =>
+  cleanedFeatures.value
+    .filter((f) => f.value === null || f.value === '' || f.value === undefined)
+    .map((f) => f.label),
+)
+
+const isEligible = computed(() => {
+  if (!mappedFeatures.value) return false
+  if ('eligible' in mappedFeatures.value)
+    return Boolean(mappedFeatures.value['eligible'] as unknown as boolean | string)
+  if ('prediction' in mappedFeatures.value) {
+    const pred = mappedFeatures.value['prediction'] as unknown as boolean | string
+    if (typeof pred === 'string')
+      return ['eligible', 'approved', 'true'].includes(pred.toLowerCase())
+    if (typeof pred === 'boolean') return pred
+  }
+  return missingFeatures.value.length === 0
+})
 
 function keyForRequirement(r: RequirementItem, idx: number) {
   return `${r.type}-${r.name}-${idx}`
@@ -176,7 +286,6 @@ async function submitCurrent() {
     const extracted = {
       api_result: activeOcr.value,
       rules: rulesString.value, // kept for client display
-      requirements_for_LLM: requirements_for_LLM.value, // stored for traceability/debugging
       requirement_key: key,
     }
     await submissions.addDocument(
@@ -334,6 +443,13 @@ onMounted(async () => {
           </template>
         </v-list-item>
       </v-list>
+
+      <!-- Predict Eligibility Button -->
+      <div v-if="allRequirementsSubmitted" class="mt-4 d-flex justify-end">
+        <v-btn color="primary" :loading="mappingLoading" @click="predictEligibility">
+          Predict Eligibility
+        </v-btn>
+      </div>
 
       <v-divider class="my-4" />
       <div class="text-subtitle-2 mb-2">Eligibility Rules</div>
@@ -504,6 +620,53 @@ onMounted(async () => {
       <v-card-actions>
         <v-spacer />
         <v-btn variant="text" @click="programOpen = false">Close</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- Prediction Result Dialog -->
+  <v-dialog v-model="predictOpen" max-width="680">
+    <v-card>
+      <v-card-title class="text-h6">Mapped Features</v-card-title>
+      <v-card-text>
+        <div v-if="mappingError" class="text-error mb-3">Error: {{ mappingError }}</div>
+        <template v-else>
+          <div class="mb-3 d-flex align-center ga-2">
+            <strong>Status:</strong>
+            <v-chip :color="isEligible ? 'success' : 'error'" variant="tonal" size="small">
+              {{ isEligible ? 'Eligible' : 'Not Eligible' }}
+            </v-chip>
+          </div>
+          <div v-if="!mappedFeatures" class="text-medium-emphasis">No features mapped.</div>
+          <template v-else>
+            <div v-if="!isEligible && missingFeatures.length" class="mb-3">
+              <strong>Missing / Unresolved:</strong>
+              <span class="text-medium-emphasis">{{ missingFeatures.join(', ') }}</span>
+            </div>
+            <v-list density="compact" class="py-0">
+              <v-list-item v-for="f in cleanedFeatures" :key="f.key" class="px-0">
+                <v-list-item-title class="text-body-2">{{ f.label }}</v-list-item-title>
+                <v-list-item-subtitle class="text-caption">
+                  {{
+                    f.value === null || f.value === undefined || f.value === ''
+                      ? '—'
+                      : String(f.value)
+                  }}
+                </v-list-item-subtitle>
+              </v-list-item>
+            </v-list>
+          </template>
+        </template>
+        <v-divider class="my-3" />
+        <div class="text-subtitle-2 mb-1">Feature Schema</div>
+        <div class="text-caption" v-if="featureSchema">
+          <pre style="white-space: pre-wrap; font-size: 0.75rem">{{ featureSchema }}</pre>
+        </div>
+        <div class="text-caption text-medium-emphasis" v-else>Schema unavailable.</div>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="predictOpen = false">Close</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
