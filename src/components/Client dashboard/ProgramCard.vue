@@ -645,7 +645,7 @@ onMounted(async () => {
             </div>
             <v-list density="compact" class="py-0">
               <v-list-item v-for="f in cleanedFeatures" :key="f.key" class="px-0">
-                <v-list-item-title class="text-body-2">{{ f.label }}</v-list-item-title>
+                <v-list-item-title class="text-body-2 text-wrap">{{ f.label }}</v-list-item-title>
                 <v-list-item-subtitle class="text-caption">
                   {{
                     f.value === null || f.value === undefined || f.value === ''
@@ -658,11 +658,6 @@ onMounted(async () => {
           </template>
         </template>
         <v-divider class="my-3" />
-        <div class="text-subtitle-2 mb-1">Feature Schema</div>
-        <div class="text-caption" v-if="featureSchema">
-          <pre style="white-space: pre-wrap; font-size: 0.75rem">{{ featureSchema }}</pre>
-        </div>
-        <div class="text-caption text-medium-emphasis" v-else>Schema unavailable.</div>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
