@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ClientLayout from '@/layouts/ClientLayout.vue'
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import supabase from '@/lib/Supabase'
 import { useUserStore } from '@/stores/users'
 
@@ -15,7 +16,6 @@ const formRef = ref<VFormRef | null>(null)
 const form = reactive({
   agencyName: '',
   officeAddress: '',
-  contactPerson: '',
   agencyEmail: '',
   agencyNumber: '',
 })
@@ -24,6 +24,7 @@ const valid = ref(false)
 const loading = ref(false)
 const successDialog = ref(false)
 const errorMsg = ref<string | null>(null)
+const router = useRouter()
 
 const rules = {
   required: (v: string | null | undefined) => !!v || 'Required',
@@ -42,7 +43,6 @@ async function submitForm() {
     const payload = {
       agency_name: form.agencyName.trim(),
       office_address: form.officeAddress.trim(),
-      contact_person: form.contactPerson.trim(),
       agency_email: form.agencyEmail.trim().toLowerCase(),
       agency_num: form.agencyNumber.trim(),
       id: store.user_id,
@@ -54,13 +54,27 @@ async function submitForm() {
 
     Object.keys(form).forEach((k) => (form[k as keyof typeof form] = ''))
     successDialog.value = true
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error(e)
-    errorMsg.value = e.message || 'Submission failed.'
+    errorMsg.value = e instanceof Error ? e.message : 'Submission failed.'
   } finally {
     loading.value = false
   }
 }
+
+function redirectToDashboard() {
+  // Navigate to dashboard and refresh to show pending status immediately
+  router.push({ name: 'dashboard' }).then(() => {
+    window.location.reload()
+  })
+}
+
+watch(successDialog, (v, oldV) => {
+  // When the success dialog closes (by clicking outside or cancel), redirect
+  if (oldV && !v) {
+    redirectToDashboard()
+  }
+})
 </script>
 
 <template>
@@ -146,15 +160,7 @@ async function submitForm() {
                 density="comfortable"
                 class="mb-3"
               />
-              <v-text-field
-                v-model="form.contactPerson"
-                label="Contact Person"
-                :rules="[rules.required]"
-                prepend-inner-icon="mdi-account"
-                variant="outlined"
-                density="comfortable"
-                class="mb-3"
-              />
+
               <v-text-field
                 v-model="form.agencyEmail"
                 label="Agency Email"
@@ -216,7 +222,7 @@ async function submitForm() {
           </v-card-text>
           <v-card-actions>
             <v-spacer />
-            <v-btn color="primary" variant="flat" @click="successDialog = false">Close</v-btn>
+            <v-btn color="primary" variant="flat" @click="redirectToDashboard">Close</v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>
