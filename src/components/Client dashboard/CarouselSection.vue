@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { providersStore } from '../../stores/providers'
 type Provider = {
   id: string
@@ -22,6 +22,11 @@ const containerRef = ref<HTMLElement | null>(null)
 const showProviderDialog = ref(false)
 const selectedProvider = ref<Provider | null>(null)
 
+// Show only approved providers in carousel
+const visibleProviders = computed(() =>
+  store.providers.filter((p) => (p.status || '').toLowerCase() === 'approved'),
+)
+
 function openProviderDialog(provider: Provider) {
   selectedProvider.value = provider
   showProviderDialog.value = true
@@ -43,7 +48,7 @@ function scrollNext() {
   firstInteract()
 
   if (model.value == null) model.value = 0
-  else if (model.value < store.providers.length - 1) model.value++
+  else if (model.value < visibleProviders.value.length - 1) model.value++
 }
 
 function scrollPrev() {
@@ -52,6 +57,16 @@ function scrollPrev() {
 }
 
 watch(model, () => firstInteract())
+
+// Ensure model stays within bounds when provider list updates
+watch(
+  () => visibleProviders.value.length,
+  (len) => {
+    if (model.value == null) return
+    const max = Math.max(len - 1, 0)
+    if (model.value > max) model.value = max
+  },
+)
 </script>
 
 <template>
@@ -68,7 +83,7 @@ watch(model, () => firstInteract())
       "
     ></div>
     <div
-      v-if="store.providers.length && (model || 0) < store.providers.length - 1"
+      v-if="visibleProviders.length && (model || 0) < visibleProviders.length - 1"
       class="position-absolute top-0 right-0"
       style="
         width: 52px;
@@ -108,7 +123,7 @@ watch(model, () => firstInteract())
       icon="mdi-chevron-left"
     />
     <v-btn
-      v-if="store.providers.length && (model || 0) < store.providers.length - 1"
+      v-if="visibleProviders.length && (model || 0) < visibleProviders.length - 1"
       variant="flat"
       size="small"
       density="comfortable"
@@ -134,7 +149,7 @@ watch(model, () => firstInteract())
       @touchstart="firstInteract"
     >
       <v-slide-group-item
-        v-for="(provider, i) in store.providers"
+        v-for="(provider, i) in visibleProviders"
         :key="i"
         v-slot="{ toggle, isSelected }"
       >
@@ -215,6 +230,10 @@ watch(model, () => firstInteract())
       style="inset: 0"
     >
       <v-progress-circular indeterminate color="primary" />
+    </div>
+
+    <div v-else-if="store.providers.length && !visibleProviders.length" class="text-caption px-4">
+      No approved providers to display yet.
     </div>
 
     <!-- Provider Details Dialog -->
