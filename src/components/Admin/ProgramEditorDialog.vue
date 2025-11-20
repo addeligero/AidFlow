@@ -116,9 +116,6 @@ function setReqType(v: string) {
 function setReqOperator(v: string) {
   reqModel.value.operator = v as ConditionOperator
 }
-function setRuleOperator(v: string) {
-  ruleModel.value.operator = v as ConditionOperator
-}
 function openEditRule(idx: number) {
   ruleEditIndex.value = idx
   ruleModel.value = { ...props.rules[idx] }
@@ -183,6 +180,7 @@ function cancelRule() {
           <v-divider class="my-3" />
 
           <!-- Requirements editor -->
+          <br />
           <div class="d-flex align-center mb-2">
             <h4 class="text-subtitle-1 me-2">Requirements</h4>
             <v-spacer />
@@ -235,17 +233,18 @@ function cancelRule() {
           </v-table>
 
           <!-- Rules editor -->
+          <br />
           <div class="d-flex align-center mb-2">
-            <h4 class="text-subtitle-1 me-2">Rules</h4>
+            <h4 class="text-subtitle-1 me-2">Guidelines/Eligibility</h4>
             <v-spacer />
             <v-btn size="x-small" color="primary" prepend-icon="mdi-plus" @click="openAddRule()">
-              Add rule
+              Add
             </v-btn>
           </div>
           <v-table density="compact">
             <thead>
               <tr>
-                <th class="text-left">Rule</th>
+                <th class="text-left">Created</th>
                 <th class="text-right">Actions</th>
               </tr>
             </thead>
@@ -361,7 +360,7 @@ function cancelRule() {
   <v-dialog v-model="ruleDialogOpen" max-width="520">
     <v-card>
       <v-card-title class="text-h6">{{
-        ruleEditIndex === null ? 'Add Rule' : 'Edit Rule'
+        ruleEditIndex === null ? 'Add Guidelines or eligibility' : 'Edit Guidelines or eligibility'
       }}</v-card-title>
       <v-card-text>
         <v-textarea
@@ -370,33 +369,6 @@ function cancelRule() {
           :model-value="ruleModel.note || ''"
           @update:modelValue="(v) => (ruleModel.note = v)"
           placeholder="e.g. Applicant must be at least 21 years old"
-        />
-        <v-divider class="my-4" />
-        <div class="text-caption mb-2">Optional structured fields (legacy)</div>
-        <v-text-field
-          label="Field"
-          :model-value="ruleModel.field"
-          @update:modelValue="(v) => (ruleModel.field = v)"
-        />
-        <v-select
-          label="Operator"
-          :items="[
-            'equals',
-            'not_equals',
-            'less_than',
-            'less_or_equal',
-            'greater_than',
-            'greater_or_equal',
-            'includes',
-            'exists',
-          ]"
-          :model-value="ruleModel.operator"
-          @update:modelValue="setRuleOperator"
-        />
-        <v-text-field
-          label="Value"
-          :model-value="ruleModel.value"
-          @update:modelValue="(v) => (ruleModel.value = v)"
         />
       </v-card-text>
       <v-card-actions>
