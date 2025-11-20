@@ -29,6 +29,8 @@ const displayLogo = computed(() => currentProvider.value?.logo || '')
 // Edit dialog state
 const showEdit = ref(false)
 const editName = ref<string>('')
+const editProgram = ref<string>('')
+const editAbout = ref<string>('')
 const logoPreview = ref<string>('')
 const logoFile = ref<File | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
@@ -52,10 +54,7 @@ onMounted(async () => {
 function goEdit(programId: string) {
   router.push({ path: '/AdminPrograms', query: { programId } })
 }
-function goView(programId: string) {
-  // For now, reuse edit page as view; could be replaced with a dedicated view route
-  router.push({ path: '/AdminPrograms', query: { programId } })
-}
+// Removed unused goView helper (was identical to goEdit)
 
 // Delete with password confirmation
 const deleteDialog = ref(false)
@@ -124,6 +123,8 @@ function confirmNo() {
 const openEdit = () => {
   if (!currentProvider.value) return
   editName.value = currentProvider.value.agency_name
+  editProgram.value = currentProvider.value.program || ''
+  editAbout.value = (currentProvider.value as unknown as { about?: string }).about || ''
   logoPreview.value = currentProvider.value.logo || ''
   logoFile.value = null
   showEdit.value = true
@@ -160,7 +161,12 @@ const saveEdits = async () => {
 
     const { error: updateError } = await supabase
       .from('providers')
-      .update({ agency_name: editName.value, logo: logoUrl })
+      .update({
+        agency_name: editName.value,
+        logo: logoUrl,
+        program: editProgram.value,
+        about: editAbout.value,
+      })
       .eq('id', currentProvider.value.id)
     if (updateError) throw updateError
 
@@ -247,6 +253,14 @@ const saveEdits = async () => {
       <v-card-text>
         <v-form @submit.prevent="saveEdits">
           <v-text-field v-model="editName" label="Agency name" required />
+          <v-text-field v-model="editProgram" label="Program name" />
+          <v-textarea
+            v-model="editAbout"
+            label="About"
+            rows="4"
+            auto-grow
+            placeholder="Describe the agency, mission, or services"
+          />
           <div class="d-flex align-center mb-3">
             <v-avatar size="72" class="mr-3">
               <v-img :src="logoPreview || displayLogo" alt="Logo preview" cover />
