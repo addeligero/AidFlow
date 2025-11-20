@@ -89,6 +89,21 @@ const isSuperAdmin = computed(() => {
   return !!me?.is_super_admin
 })
 
+// User verification flag
+const isVerified = ref(false)
+
+onMounted(async () => {
+  try {
+    const { data: auth } = await supabase.auth.getUser()
+    const uid = auth.user?.id
+    if (!uid) return
+    const { data } = await supabase.from('users').select('is_verified').eq('user_id', uid).single()
+    isVerified.value = !!data?.is_verified
+  } catch (e) {
+    console.warn('Failed to fetch is_verified')
+  }
+})
+
 // Logout handler
 const logout = async () => {
   const { error } = await supabase.auth.signOut()
@@ -157,6 +172,20 @@ async function submitKyc() {
       return
     }
     kycResult.value = data as KycResult
+    if (kycResult.value.passed) {
+      // mark user as verified
+      const { data: auth } = await supabase.auth.getUser()
+      const uid = auth.user?.id
+      if (uid) {
+        const { error } = await supabase.from('users').update({ is_verified: true }).eq('user_id', uid)
+        if (!error) {
+          isVerified.value = true
+          verifySnack.value.text = 'You are now a verified user.'
+          verifySnack.value.color = 'success'
+          verifySnack.value.show = true
+        }
+      }
+    }
   } catch (e: unknown) {
     kycError.value = e instanceof Error ? e.message : String(e)
   } finally {
@@ -190,6 +219,13 @@ function matchName(m: Record<string, unknown>) {
   const n = m && typeof m.name === 'string' ? m.name : ''
   return n && n.trim() ? n : 'Match'
 }
+
+// Verification snackbar
+const verifySnack = ref<{ show: boolean; text: string; color: string }>({
+  show: false,
+  text: '',
+  color: 'success',
+})
 </script>
 
 <template>
@@ -221,10 +257,11 @@ function matchName(m: Record<string, unknown>) {
           color="primary"
         />
         <v-list-item
-          prepend-icon="mdi-account-check"
-          title="Verify Identity (KYC)"
-          color="primary"
-          @click="kycOpen = true"
+          :prepend-icon="isVerified ? 'mdi-check-decagram' : 'mdi-account-check'"
+          :title="isVerified ? `You're a verified user` : 'Verify Identity (KYC)'"
+          :color="isVerified ? 'success' : 'primary'"
+          :disabled="isVerified"
+          @click="() => { if (!isVerified) kycOpen = true }"
         />
         <v-list-item
           v-if="isSuperAdmin"
@@ -409,6 +446,10 @@ function matchName(m: Record<string, unknown>) {
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <v-snackbar v-model="verifySnack.show" :color="verifySnack.color" timeout="2500">
+    {{ verifySnack.text }}
+  </v-snackbar>
 </template>
 
 <style scoped>

@@ -44,6 +44,25 @@ onMounted(async () => {
       },
     )
     .subscribe()
+
+  // Fetch initial verification status
+  if (userStore.user_id) {
+    supabase
+      .from('users')
+      .select('is_verified')
+      .eq('user_id', userStore.user_id)
+      .single()
+      .then(
+        ({ data, error }) => {
+          if (!error && data) {
+            isVerified.value = !!(data as { is_verified?: boolean }).is_verified
+          }
+        },
+        () => {
+          console.warn('Failed to fetch verification status')
+        },
+      )
+  }
 })
 
 onBeforeUnmount(() => {
@@ -223,6 +242,10 @@ const kycSelfie = ref<File | null>(null)
 const kycFullName = ref('')
 const kycDob = ref('')
 
+// Verified status and snackbar
+const isVerified = ref(false)
+const verifySnack = ref(false)
+
 function onFrontChange(f: File | File[] | null | undefined) {
   kycFront.value = Array.isArray(f) ? f[0] || null : (f ?? (null as File | null))
 }
@@ -271,6 +294,25 @@ async function submitKyc() {
       return
     }
     kycResult.value = data as KycResult
+
+    // If verification passed, persist to DB and show snackbar
+    if ((kycResult.value as KycResult).passed) {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser()
+      if (authUser) {
+        const { error: upErr } = await supabase
+          .from('users')
+          .update({ is_verified: true })
+          .eq('user_id', authUser.id)
+        if (!upErr) {
+          isVerified.value = true
+          verifySnack.value = true
+        } else {
+          console.warn('Failed to update verification status:', upErr.message)
+        }
+      }
+    }
   } catch (e: unknown) {
     kycError.value = e instanceof Error ? e.message : String(e)
   } finally {
@@ -417,8 +459,10 @@ function resetKycForm() {
 
         <!-- KYC (Client) -->
         <v-list-item
-          prepend-icon="mdi-account-check"
-          title="Verify Identity (KYC)"
+          :prepend-icon="isVerified ? 'mdi-shield-check' : 'mdi-account-check'"
+          :title="isVerified ? `You're a verified user` : 'Verify Identity (KYC)'"
+          :disabled="isVerified"
+          :color="isVerified ? 'success' : undefined"
           @click="
             () => {
               emit('update:modelValue', false)
@@ -545,6 +589,14 @@ function resetKycForm() {
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <!-- Verification success snackbar --> 
+  <v-snackbar v-model="verifySnack" color="success" :timeout="3000">
+    You're a verified user now.
+    <template #actions>
+      <v-btn variant="text" @click="verifySnack = false">Close</v-btn>
+    </template>
+  </v-snackbar>
 
   <!-- Pending Status Dialog -->
   <v-dialog v-model="showPendingDialog" max-width="420">
