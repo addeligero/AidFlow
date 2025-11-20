@@ -60,7 +60,7 @@ export const providersStore = defineStore('providers', () => {
       const { data, error } = await supabase
         .from('providers')
         .select(
-          'id, agency_name, logo, status, rejection_reason, created_at, is_super_admin, program,agency_email, agency_num, office_address',
+          'id, agency_name, logo, status, rejection_reason, created_at, is_super_admin, program,agency_email, agency_num, office_address, about',
         )
         .order('created_at', { ascending: false })
       if (error) throw error

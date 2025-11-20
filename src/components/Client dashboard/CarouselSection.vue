@@ -10,6 +10,7 @@ type Provider = {
   agency_email?: string
   agency_num?: string
   office_address?: string
+  about?: string
 }
 
 const store = providersStore()
@@ -284,12 +285,7 @@ watch(
           <v-divider class="my-3" />
           <div class="text-body-2">
             <p class="mb-2 text-medium-emphasis">About</p>
-            <p>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque feugiat, tortor vel
-              fermentum hendrerit, arcu nibh lacinia mi, sed suscipit nisl purus id ipsum. In hac
-              habitasse platea dictumst. Curabitur consequat, ipsum ac convallis accumsan, velit
-              ligula varius justo, ut iaculis metus mi et nulla. Suspendisse potenti.
-            </p>
+            <span>{{ selectedProvider?.about || 'No information available' }}</span>
           </div>
         </v-card-text>
         <v-divider />
