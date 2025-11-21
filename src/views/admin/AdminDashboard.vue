@@ -214,7 +214,7 @@ const saveEdits = async () => {
             {{ p.category || 'Program' }}
           </v-card-subtitle>
           <v-card-text>
-            <div class="text-caption mb-2">{{ p.description || 'No description' }}</div>
+            <div class="text-caption mb-2 clamp-3">{{ p.description || 'No description' }}</div>
             <hr />
             <div class="text-caption">Requirements: {{ p.requirements?.length || 0 }}</div>
             <div class="text-caption">Rules: {{ p.rules?.length || 0 }}</div>
@@ -333,3 +333,13 @@ const saveEdits = async () => {
     </v-card>
   </v-dialog>
 </template>
+<style scoped>
+.clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  /* Standard property for broader compatibility */
+  line-clamp: 3;
+}
+</style>

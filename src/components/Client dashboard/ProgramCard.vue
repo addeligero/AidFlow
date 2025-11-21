@@ -4,6 +4,7 @@ import type { Program, RequirementItem, RuleItem } from '../../stores/programs'
 import { useUserStore } from '../../stores/users'
 import { useSubmissionsStore } from '../../stores/submissions'
 import { useProgramsStore } from '../../stores/programs'
+import { providersStore } from '../../stores/providers'
 
 interface TrainingResultLike {
   feature_schema?: string[] | Record<string, unknown>
@@ -103,6 +104,13 @@ const mappedFeatures = ref<Record<string, unknown> | null>(null)
 const featureSchema = ref<string[] | Record<string, unknown> | null>(null)
 
 const programsStore = useProgramsStore()
+const ps = providersStore()
+
+// Resolve provider info for this program
+const providerEntry = computed(() =>
+  ps.providers.find((p) => String(p.id) === String(props.program.provider_id)),
+)
+const providerName = computed(() => providerEntry.value?.agency_name || 'Unknown Provider')
 
 // Determine if all requirements have a submitted document
 const allRequirementsSubmitted = computed(() => {
@@ -199,12 +207,29 @@ const isEligible = computed(() => {
   return missingFeatures.value.length === 0
 })
 
+// Limit lists on card to keep heights aligned
+const showAllReqs = ref(false)
+const showAllRules = ref(false)
+const visibleRequirements = computed(() => {
+  const list = (props.program.requirements || []) as RequirementItem[]
+  return showAllReqs.value ? list : list.slice(0, 3)
+})
+const visibleRules = computed(() => {
+  const list = (props.program.rules || []) as RuleItem[]
+  return showAllRules.value ? list : list.slice(0, 3)
+})
+
 function keyForRequirement(r: RequirementItem, idx: number) {
   return `${r.type}-${r.name}-${idx}`
 }
 
 function requirementLabel(r: RequirementItem) {
   if (r.type === 'document') return r.description?.trim() || `Provide ${r.name}`
+  // Support new 'input' type where applicants type a value (e.g., Purpose)
+  if ((r as unknown as { type?: string }).type === 'input') {
+    return r.description?.toString().trim() || `Please provide ${r.name}`
+  }
+  // Legacy 'condition' fallback formatting
   const parts = [r.field_key, r.operator, r.value].filter(Boolean)
   return parts.join(' ')
 }
@@ -349,6 +374,7 @@ async function confirmResubmit() {
 import { onMounted } from 'vue'
 onMounted(async () => {
   if (!userStore.isUserLoaded) await userStore.fetchUser()
+  if (ps.providers.length === 0) await ps.fetchProviders()
   if (!userStore.user_id) return
   const clientId = userStore.user_id
   const programId = props.program.id as string | number
@@ -390,7 +416,7 @@ onMounted(async () => {
       </div>
       <v-list v-else density="compact" class="py-0">
         <v-list-item
-          v-for="(req, idx) in program.requirements"
+          v-for="(req, idx) in visibleRequirements"
           :key="keyForRequirement(req, idx)"
           class="px-0"
         >
@@ -443,6 +469,17 @@ onMounted(async () => {
           </template>
         </v-list-item>
       </v-list>
+      <div
+        v-if="(program.requirements?.length || 0) > 3 && !showAllReqs"
+        class="text-medium-emphasis text-caption mt-1"
+      >
+        ...
+      </div>
+      <div v-if="(program.requirements?.length || 0) > 3" class="mt-2 d-flex justify-end">
+        <v-btn size="x-small" variant="text" @click="showAllReqs = !showAllReqs">
+          {{ showAllReqs ? 'Show less' : 'View all requirements' }}
+        </v-btn>
+      </div>
 
       <!-- Predict Eligibility Button -->
       <div v-if="allRequirementsSubmitted" class="mt-4 d-flex justify-end">
@@ -457,7 +494,7 @@ onMounted(async () => {
         No rules set.
       </div>
       <v-list v-else density="compact" class="py-0">
-        <v-list-item v-for="(r, rIdx) in program.rules" :key="rIdx" class="px-0">
+        <v-list-item v-for="(r, rIdx) in visibleRules" :key="rIdx" class="px-0">
           <v-list-item-title class="text-body-2">
             <template v-if="r.field && String(r.field).trim()">
               {{ r.field }} {{ r.operator }} {{ r.value }}
@@ -471,6 +508,17 @@ onMounted(async () => {
           </v-list-item-subtitle>
         </v-list-item>
       </v-list>
+      <div
+        v-if="(program.rules?.length || 0) > 3 && !showAllRules"
+        class="text-caption mt-1 text-medium-emphasis"
+      >
+        ...
+      </div>
+      <div v-if="(program.rules?.length || 0) > 3" class="mt-2 d-flex justify-end">
+        <v-btn size="x-small" variant="text" @click="showAllRules = !showAllRules">
+          {{ showAllRules ? 'Show less' : 'View all rules' }}
+        </v-btn>
+      </div>
     </v-card-text>
   </v-card>
   <!-- Preview Modal -->
@@ -568,6 +616,10 @@ onMounted(async () => {
       <v-card-text>
         <div class="text-body-2 mb-2">
           <strong>Category:</strong> {{ program.category || 'Program' }}
+        </div>
+        <div class="text-body-2 mb-2">
+          <strong>Provider:</strong>
+          <span class="text-medium-emphasis">{{ providerName }}</span>
         </div>
         <div class="text-body-2 mb-4">
           <strong>Description:</strong>
