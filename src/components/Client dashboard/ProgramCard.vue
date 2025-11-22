@@ -635,7 +635,8 @@ onMounted(async () => {
             :key="`detail-req-${idx}`"
             class="px-0"
           >
-            <v-list-item-title class="text-body-2">{{ req.name }}</v-list-item-title>
+            <v-list-item-title class="text-body-2 text-wrap">{{ req.name }}</v-list-item-title>
+
             <v-list-item-subtitle class="text-caption requirement-subtitle">
               {{ requirementLabel(req) }}
             </v-list-item-subtitle>
