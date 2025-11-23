@@ -313,7 +313,19 @@ async function processFile(key: string, file: File) {
     const fd = new FormData()
     fd.append('file', file)
     fd.append('doc_type', 'printed')
-    if (requirements_for_LLM.value) fd.append('requirements_for_LLM', requirements_for_LLM.value)
+    // Provide ONLY the context for the specific requirement being submitted (not the entire program)
+    const singleReqCtx = (() => {
+      const parts = key.split('-')
+      const idx = Number(parts.pop())
+      const req = (props.program.requirements || [])[idx] as RequirementItem | undefined
+      if (!req) return ''
+      const name = (req.name || '').toString().trim()
+      const desc = (req.description || '').toString().trim()
+      const details = desc || requirementLabel(req)
+      return name && details ? `${name}: ${details}` : name || details
+    })()
+       // Backend expects 'requirements_for_LLM' key; now limited to this single requirement
+    if (singleReqCtx) fd.append('requirements_for_LLM', singleReqCtx)
     const res = await fetch('http://127.0.0.1:5000/upload', { method: 'POST', body: fd })
     const data = await res.json()
     console.log('OCR upload response (processFile):', data)
