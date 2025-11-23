@@ -45,12 +45,14 @@ onMounted(async () => {
     )
     .subscribe()
 
-  // Fetch initial verification status
-  if (userStore.user_id) {
+  // Fetch initial verification status (must use auth user's UUID, not numeric provider id)
+  const { data: authCtx } = await supabase.auth.getUser()
+  const authUserId = authCtx.user?.id
+  if (authUserId) {
     supabase
       .from('users')
       .select('is_verified')
-      .eq('user_id', userStore.user_id)
+      .eq('user_id', authUserId)
       .single()
       .then(
         ({ data, error }) => {
@@ -590,7 +592,7 @@ function resetKycForm() {
     </v-card>
   </v-dialog>
 
-  <!-- Verification success snackbar --> 
+  <!-- Verification success snackbar -->
   <v-snackbar v-model="verifySnack" color="success" :timeout="3000">
     You're a verified user now.
     <template #actions>
