@@ -257,8 +257,38 @@ async function processFile(key: string, file: File) {
     if (!res.ok) throw new Error(data.error || res.statusText)
     uploads.value[key].file = file
     uploads.value[key].ocr = data as OcrResult
-    previewKey.value = key
-    previewOpen.value = true
+    // Auto-submit immediately after OCR success
+    if (!userStore.isUserLoaded) await userStore.fetchUser()
+    const clientId = userStore.user_id
+    if (!clientId) throw new Error('User not found for auto-submit.')
+    const programId = props.program.id as unknown as string | number
+    if (!submissionId.value) {
+      submissionId.value =
+        (await submissions.findOrGetPendingSubmission(clientId, programId)) ||
+        (await submissions.createSubmission(clientId, programId))
+    }
+    const extracted = {
+      api_result: uploads.value[key].ocr,
+      rules: rulesString.value,
+      requirement_key: key,
+    }
+    await submissions.addDocument(
+      submissionId.value,
+      uploads.value[key].ocr?.doc_type || 'printed',
+      file,
+      extracted,
+      { bucket: 'client-submissions', directory: 'uploads' },
+    )
+    uploads.value[key].submitted = true
+    existingDocs.value[key] = {
+      docId: submissions.documents[0]?.id || 'unknown',
+      file_url: submissions.documents[0]?.file_url || '',
+      extracted,
+    }
+    // Optional snackbar notification
+    predictSnackText.value = `Uploaded & submitted ${key}`
+    predictSnackColor.value = 'success'
+    predictSnackShow.value = true
   } catch (err: unknown) {
     uploads.value[key].error = err instanceof Error ? err.message : String(err)
   } finally {
@@ -268,6 +298,7 @@ async function processFile(key: string, file: File) {
 
 function onFileSelected(key: string, file: File) {
   void processFile(key, file)
+  reuseOpen.value = false
 }
 
 // Reuse past documents
@@ -326,49 +357,7 @@ function resubmit() {
   setTimeout(() => programCardRef.value?.triggerFilePicker(previewKey.value!), 50)
 }
 
-async function submitCurrent() {
-  const key = previewKey.value
-  if (!key) return
-  const state = uploads.value[key]
-  if (!state?.file || !activeOcr.value) return
-  if (!userStore.isUserLoaded) await userStore.fetchUser()
-  const clientId = userStore.user_id
-  if (!clientId) {
-    state.error = 'User not found.'
-    return
-  }
-  const programId = props.program.id as unknown as string | number
-  try {
-    if (!submissionId.value) {
-      submissionId.value =
-        (await submissions.findOrGetPendingSubmission(clientId, programId)) ||
-        (await submissions.createSubmission(clientId, programId))
-    }
-    const extracted = {
-      api_result: activeOcr.value,
-      rules: rulesString.value,
-      requirement_key: key,
-    }
-    await submissions.addDocument(
-      submissionId.value,
-      activeOcr.value.doc_type || 'printed',
-      state.file,
-      extracted,
-      { bucket: 'client-submissions', directory: 'uploads' },
-    )
-    state.submitted = true
-    existingDocs.value[key] = {
-      docId: submissions.documents[0]?.id || 'unknown',
-      file_url: submissions.documents[0]?.file_url || '',
-      extracted,
-    }
-    previewOpen.value = false
-    // Ensure chooser is definitely closed after submit
-    reuseOpen.value = false
-  } catch (e: unknown) {
-    state.error = e instanceof Error ? e.message : String(e)
-  }
-}
+// submitCurrent removed: auto-submit now happens in processFile
 
 function openExisting(key: string) {
   previewKey.value = key
@@ -479,8 +468,8 @@ onMounted(async () => {
         </v-card-title>
         <v-card-text>
           <div class="text-caption text-medium-emphasis mb-3">
-            Review the automatically extracted information. If something is off, choose Resubmit to
-            try again.
+            Review details below. Use Resubmit to replace this document if the extraction seems
+            incorrect.
           </div>
           <div v-if="activeOcr?.structured_output?.matched_requirement" class="mb-2">
             <strong>Matched Requirement:</strong>
@@ -547,16 +536,8 @@ onMounted(async () => {
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" v-if="existingDocs[previewKey || '']" @click="confirmResubmit"
-            >Resubmit</v-btn
-          >
-          <v-btn variant="text" v-else @click="resubmit">Resubmit</v-btn>
-          <v-btn
-            color="primary"
-            :loading="submissions.uploading || submissions.creating"
-            @click="submitCurrent"
-            >Submit</v-btn
-          >
+          <v-btn variant="text" @click="confirmResubmit">Resubmit</v-btn>
+          <v-btn variant="text" @click="previewOpen = false">Close</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -607,7 +588,7 @@ onMounted(async () => {
             size="small"
             variant="outlined"
             color="primary"
-            @click="() => programCardRef.value?.triggerFilePicker(reuseKey || '')"
+            @click="programCardRef?.triggerFilePicker(reuseKey || '')"
             >Upload New</v-btn
           >
           <v-btn variant="text" @click="reuseOpen = false">Close</v-btn>
