@@ -285,6 +285,15 @@ function publicUrlFor(doc: ClientDocument) {
   return data.publicUrl
 }
 
+// Helper to extract display info (name + original requirement context) from a stored document
+function docDisplayMeta(doc: ClientDocument) {
+  const extracted = (doc.extracted_data as any) || {}
+  const structured = extracted?.api_result?.structured_output || extracted?.structured_output || {}
+  const documentType = structured?.document_type || extracted?.api_result?.doc_type || doc.doc_type || 'Document'
+  const matchedReq = structured?.matched_requirement || extracted?.requirements_for_LLM || extracted?.requirement_key || 'Unknown requirement'
+  return { name: documentType, requirement: matchedReq }
+}
+
 async function loadPastDocuments() {
   if (!userStore.isUserLoaded) await userStore.fetchUser()
   const clientId = userStore.user_id
@@ -298,7 +307,7 @@ async function loadPastDocuments() {
   }
 }
 
-function openReuse(key: string) {
+function openUploadChooser(key: string) {
   reuseKey.value = key
   reuseOpen.value = true
   void loadPastDocuments()
@@ -324,7 +333,7 @@ async function processFile(key: string, file: File) {
       const details = desc || requirementLabel(req)
       return name && details ? `${name}: ${details}` : name || details
     })()
-       // Backend expects 'requirements_for_LLM' key; now limited to this single requirement
+    // Backend expects 'requirements_for_LLM' key; now limited to this single requirement
     if (singleReqCtx) fd.append('requirements_for_LLM', singleReqCtx)
     const res = await fetch('http://127.0.0.1:5000/upload', { method: 'POST', body: fd })
     const data = await res.json()
@@ -555,16 +564,9 @@ onMounted(async () => {
                   variant="tonal"
                   color="primary"
                   :loading="uploads[keyForRequirement(req, idx)]?.uploading"
-                  @click="fileRefs[keyForRequirement(req, idx)]?.click()"
+                  @click="openUploadChooser(keyForRequirement(req, idx))"
                 >
                   Upload
-                </v-btn>
-                <v-btn
-                  size="x-small"
-                  variant="text"
-                  @click="openReuse(keyForRequirement(req, idx))"
-                >
-                  Reuse
                 </v-btn>
               </template>
             </div>
@@ -715,38 +717,63 @@ onMounted(async () => {
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <!-- Reuse Existing Documents Dialog -->
+  <!-- Upload / Reuse Chooser Dialog -->
   <v-dialog v-model="reuseOpen" max-width="820">
     <v-card>
-      <v-card-title class="text-h6">Select a Past Document</v-card-title>
+      <v-card-title class="text-h6">Select Existing or Upload New</v-card-title>
       <v-card-text>
+        <div class="text-caption text-medium-emphasis mb-3">
+          Choose a previously submitted document or upload a new one.
+        </div>
         <div v-if="pastLoading" class="text-medium-emphasis mb-2">Loading documents...</div>
-        <div v-else-if="!pastDocs.length" class="text-medium-emphasis mb-2">
-          No past documents found.
+        <div v-else-if="!pastDocs.length" class="text-medium-emphasis mb-4">
+          No past documents found. Upload a new document.
         </div>
         <v-row v-else dense>
-          <v-col v-for="doc in pastDocs" :key="doc.id" cols="12" sm="6" md="4" class="mb-3">
-            <v-sheet rounded="md" elevation="2" class="pa-2 d-flex flex-column" height="100%">
-              <v-img
-                :src="publicUrlFor(doc)"
-                height="140"
-                cover
-                class="mb-2 rounded"
-                v-if="publicUrlFor(doc)"
-              />
-              <div class="text-caption mb-1"><strong>Type:</strong> {{ doc.doc_type }}</div>
-              <div class="text-caption mb-1">
-                <strong>Path:</strong> {{ doc.file_url.split('/').pop() }}
+          <v-col
+            v-for="doc in pastDocs"
+            :key="doc.id"
+            cols="12"
+            sm="6"
+            md="4"
+            class="mb-3"
+          >
+            <v-sheet rounded="md" elevation="2" class="pa-3 d-flex flex-column ga-2" height="100%">
+              <div class="d-flex align-start ga-2">
+                <v-avatar size="40" color="primary" variant="tonal">
+                  <v-icon icon="mdi-file" />
+                </v-avatar>
+                <div class="flex-grow-1">
+                  <div class="text-body-2 font-weight-medium">
+                    {{ docDisplayMeta(doc).name }}
+                  </div>
+                  <div class="text-caption text-medium-emphasis">
+                    Submitted For: {{ docDisplayMeta(doc).requirement }}
+                  </div>
+                </div>
               </div>
-              <v-btn size="x-small" color="primary" variant="tonal" @click="reuseDocument(doc)">
-                Use
-              </v-btn>
+              <div class="d-flex justify-end mt-auto">
+                <v-btn size="x-small" color="primary" variant="tonal" @click="reuseDocument(doc)">
+                  Use This
+                </v-btn>
+              </div>
             </v-sheet>
           </v-col>
         </v-row>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
+        <v-btn
+          size="small"
+          variant="outlined"
+          color="primary"
+          @click="
+            () => {
+              fileRefs[reuseKey || '']?.click()
+            }
+          "
+          >Upload New</v-btn
+        >
         <v-btn variant="text" @click="reuseOpen = false">Close</v-btn>
       </v-card-actions>
     </v-card>
