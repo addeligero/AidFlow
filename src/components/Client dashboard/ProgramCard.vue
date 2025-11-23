@@ -102,6 +102,12 @@ const mappingLoading = ref(false)
 const mappingError = ref<string | null>(null)
 const mappedFeatures = ref<Record<string, unknown> | null>(null)
 const featureSchema = ref<string[] | Record<string, unknown> | null>(null)
+// Track which requirement documents were used (passed validation) in mapping
+const mappingUsedDocs = ref<string[]>([])
+// Snackbar for eligibility prediction feedback
+const predictSnackShow = ref(false)
+const predictSnackText = ref('')
+const predictSnackColor = ref<'error' | 'success' | 'warning'>('error')
 
 const programsStore = useProgramsStore()
 const ps = providersStore()
@@ -113,20 +119,21 @@ const providerEntry = computed(() =>
 const providerName = computed(() => providerEntry.value?.agency_name || 'Unknown Provider')
 
 // Determine if all requirements have a submitted document
-const allRequirementsSubmitted = computed(() => {
-  const reqs = (props.program.requirements || []) as RequirementItem[]
-  if (!reqs.length) return false
-  return reqs.every((r, idx) => {
-    const key = keyForRequirement(r, idx)
-    return !!existingDocs.value[key]
-  })
-})
 
 async function predictEligibility() {
   if (mappingLoading.value) return
   mappingLoading.value = true
   mappingError.value = null
   mappedFeatures.value = null
+  mappingUsedDocs.value = []
+  // Guard: no submitted documents at all
+  if (!Object.keys(existingDocs.value).length) {
+    mappingLoading.value = false
+    predictSnackText.value = 'No documents submitted yet. Upload requirements first.'
+    predictSnackColor.value = 'error'
+    predictSnackShow.value = true
+    return
+  }
   // Attempt to fetch latest training result to obtain feature schema
   try {
     const training = await programsStore.fetchLatestTrainingResult(
@@ -143,7 +150,19 @@ async function predictEligibility() {
   // Aggregate extracted OCR data per requirement
   const extractedAggregate: Record<string, unknown> = {}
   for (const [key, meta] of Object.entries(existingDocs.value)) {
-    extractedAggregate[key] = meta.extracted?.api_result || {}
+    const apiResult = meta.extracted?.api_result as OcrResult | undefined
+    const status = apiResult?.structured_output?.validation?.status
+    if (status === 'passed') {
+      extractedAggregate[key] = apiResult || {}
+      mappingUsedDocs.value.push(key)
+    }
+  }
+  if (!mappingUsedDocs.value.length) {
+    mappingLoading.value = false
+    predictSnackText.value = 'No passed documents to map. Please resubmit failing documents.'
+    predictSnackColor.value = 'warning'
+    predictSnackShow.value = true
+    return
   }
   const payload: Record<string, unknown> = {
     program_id: props.program.id,
@@ -205,6 +224,19 @@ const isEligible = computed(() => {
     if (typeof pred === 'boolean') return pred
   }
   return missingFeatures.value.length === 0
+})
+
+// Human-friendly list of used documents (requirement names)
+const mappingUsedDocsDisplay = computed(() => {
+  const reqs = (props.program.requirements || []) as RequirementItem[]
+  return mappingUsedDocs.value.map((key) => {
+    // key format: type-name-idx
+    const parts = key.split('-')
+    const idx = Number(parts.pop())
+    const namePart = parts.slice(1, parts.length).join('-') // original name may contain dashes
+    const req = reqs[idx]
+    return req?.name || namePart || key
+  })
 })
 
 // Limit lists on card to keep heights aligned
@@ -482,7 +514,7 @@ onMounted(async () => {
       </div>
 
       <!-- Predict Eligibility Button -->
-      <div v-if="allRequirementsSubmitted" class="mt-4 d-flex justify-end">
+      <div class="mt-4 d-flex justify-end">
         <v-btn color="primary" :loading="mappingLoading" @click="predictEligibility">
           Predict Eligibility
         </v-btn>
@@ -684,6 +716,10 @@ onMounted(async () => {
       <v-card-text>
         <div v-if="mappingError" class="text-error mb-3">Error: {{ mappingError }}</div>
         <template v-else>
+          <div class="mb-3" v-if="mappingUsedDocsDisplay.length">
+            <strong>Documents Used:</strong>
+            <span class="text-medium-emphasis">{{ mappingUsedDocsDisplay.join(', ') }}</span>
+          </div>
           <div class="mb-3 d-flex align-center ga-2">
             <strong>Status:</strong>
             <v-chip :color="isEligible ? 'success' : 'error'" variant="tonal" size="small">
@@ -718,6 +754,13 @@ onMounted(async () => {
       </v-card-actions>
     </v-card>
   </v-dialog>
+  <!-- Prediction feedback snackbar -->
+  <v-snackbar v-model="predictSnackShow" :color="predictSnackColor" :timeout="3000">
+    {{ predictSnackText }}
+    <template #actions>
+      <v-btn variant="text" @click="predictSnackShow = false">Close</v-btn>
+    </template>
+  </v-snackbar>
 </template>
 
 <style scoped>
