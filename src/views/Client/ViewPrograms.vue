@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref, computed, defineAsyncComponent } from 'vue'
 const ClientLayout = defineAsyncComponent(() => import('../../layouts/ClientLayout.vue'))
-const ProgramCard = defineAsyncComponent(
-  () => import('../../components/Client dashboard/ProgramCard.vue'),
+const ClientProgram = defineAsyncComponent(
+  () => import('../../components/Client dashboard/ClientProgram.vue'),
 )
 import { useProgramsStore } from '../../stores/programs'
 
@@ -70,7 +70,7 @@ const refresh = () => programsStore.fetchPrograms()
         </v-col>
 
         <v-col v-for="p in programs" :key="p.id" cols="12" md="6" lg="4" class="d-flex">
-          <ProgramCard :program="p" class="w-100" />
+          <ClientProgram :program="p" class="w-100" />
         </v-col>
 
         <v-col cols="12" v-if="!loading && !programs.length" class="py-10">

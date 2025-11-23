@@ -18,7 +18,7 @@
           </div>
           <v-row>
             <v-col v-for="p in programs" :key="p.id" cols="12" sm="6" md="4" lg="3" class="d-flex">
-              <ProgramCard :program="p" class="w-100" />
+              <ClientProgram :program="p" class="w-100" />
             </v-col>
             <v-col v-if="programsLoading" cols="12" class="text-center py-8">
               <v-progress-circular indeterminate color="primary" />
@@ -40,8 +40,8 @@ const ClientLayout = defineAsyncComponent(() => import('../../layouts/ClientLayo
 const Carousel = defineAsyncComponent(
   () => import('../../components/Client dashboard/CarouselSection.vue'),
 )
-const ProgramCard = defineAsyncComponent(
-  () => import('../../components/Client dashboard/ProgramCard.vue'),
+const ClientProgram = defineAsyncComponent(
+  () => import('../../components/Client dashboard/ClientProgram.vue'),
 )
 import { useProgramsStore } from '../../stores/programs'
 
