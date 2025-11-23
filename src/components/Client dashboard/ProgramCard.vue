@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, type ComponentPublicInstance } from 'vue'
+import { ref, computed, type ComponentPublicInstance, useAttrs } from 'vue'
 import type { Program, RequirementItem, RuleItem } from '../../stores/programs'
 import { useUserStore } from '../../stores/users'
 import { useSubmissionsStore, type ClientDocument } from '../../stores/submissions'
@@ -12,6 +12,8 @@ interface TrainingResultLike {
 }
 
 const props = defineProps<{ program: Program }>()
+defineOptions({ inheritAttrs: false })
+const attrs = useAttrs()
 
 type ExtractedData = {
   api_result?: OcrResult
@@ -72,25 +74,8 @@ const rulesString = computed(() => {
     .join(', ')
 })
 
-// Extract requirement name + description into a single string for LLM upload context
-const requirements_for_LLM = computed(() => {
-  const reqs = (props.program.requirements || []) as RequirementItem[]
-  if (!reqs.length) return ''
-  return reqs
-    .map((r) => {
-      const name = (r.name || '').toString().trim()
-      const desc = (r.description || '').toString().trim()
-      const details = desc || requirementLabel(r)
-      if (name && details) return `${name}: ${details}`
-      return name || details
-    })
-    .filter(Boolean)
-    .join('\n')
-})
-
 onMounted(() => {
-  console.log('Rules:', props.program.rules)
-  console.log('requirements_for_LLM:', requirements_for_LLM.value)
+  //console.log('Rules:', props.program.rules)
 })
 
 // Program details dialog
@@ -278,19 +263,28 @@ const reuseKey = ref<string | null>(null)
 const pastDocs = ref<ClientDocument[]>([])
 const pastLoading = ref(false)
 
-function publicUrlFor(doc: ClientDocument) {
-  if (!doc.file_url) return ''
-  if (/^https?:\/\//i.test(doc.file_url)) return doc.file_url
-  const { data } = supabase.storage.from('client-submissions').getPublicUrl(doc.file_url)
-  return data.publicUrl
+interface StoredExtractedMeta {
+  api_result?: {
+    doc_type?: string
+    structured_output?: {
+      document_type?: string
+      matched_requirement?: string
+    }
+  }
+  requirements_for_LLM?: string
+  requirement_key?: string
 }
-
 // Helper to extract display info (name + original requirement context) from a stored document
 function docDisplayMeta(doc: ClientDocument) {
-  const extracted = (doc.extracted_data as any) || {}
-  const structured = extracted?.api_result?.structured_output || extracted?.structured_output || {}
-  const documentType = structured?.document_type || extracted?.api_result?.doc_type || doc.doc_type || 'Document'
-  const matchedReq = structured?.matched_requirement || extracted?.requirements_for_LLM || extracted?.requirement_key || 'Unknown requirement'
+  const extracted = (doc.extracted_data as StoredExtractedMeta | null) || null
+  const structured = extracted?.api_result?.structured_output
+  const documentType =
+    structured?.document_type || extracted?.api_result?.doc_type || doc.doc_type || 'Document'
+  const matchedReq =
+    structured?.matched_requirement ||
+    extracted?.requirements_for_LLM ||
+    extracted?.requirement_key ||
+    'Unknown requirement'
   return { name: documentType, requirement: matchedReq }
 }
 
@@ -511,7 +505,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <v-card class="mx-auto h-100 d-flex flex-column" elevation="8">
+  <v-card v-bind="attrs" class="mx-auto h-100 d-flex flex-column" elevation="8">
     <v-card-title class="py-3 d-flex align-center">
       <div>
         <div class="text-subtitle-1 font-weight-medium">{{ program.name }}</div>
@@ -730,20 +724,13 @@ onMounted(async () => {
           No past documents found. Upload a new document.
         </div>
         <v-row v-else dense>
-          <v-col
-            v-for="doc in pastDocs"
-            :key="doc.id"
-            cols="12"
-            sm="6"
-            md="4"
-            class="mb-3"
-          >
+          <v-col v-for="doc in pastDocs" :key="doc.id" cols="12" sm="6" md="4" class="mb-3">
             <v-sheet rounded="md" elevation="2" class="pa-3 d-flex flex-column ga-2" height="100%">
               <div class="d-flex align-start ga-2">
                 <v-avatar size="40" color="primary" variant="tonal">
                   <v-icon icon="mdi-file" />
                 </v-avatar>
-                <div class="flex-grow-1">
+                <div class="grow">
                   <div class="text-body-2 font-weight-medium">
                     {{ docDisplayMeta(doc).name }}
                   </div>
