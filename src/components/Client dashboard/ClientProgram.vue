@@ -151,6 +151,10 @@ async function predictEligibility() {
     extracted_data: extractedAggregate,
   }
   if (featureSchema.value) payload.features = featureSchema.value
+
+  // EXACT payload log
+  console.log('[features/map] SUBMIT PAYLOAD:\n' + JSON.stringify(payload, null, 2))
+
   try {
     const res = await fetch('http://localhost:5000/features/map', {
       method: 'POST',
@@ -158,6 +162,14 @@ async function predictEligibility() {
       body: JSON.stringify(payload),
     })
     const data = await res.json()
+
+    // EXACT response log
+    console.log(
+      '[features/map] RESPONSE:\nStatus:',
+      res.status,
+      '\nBody:\n' + JSON.stringify(data, null, 2),
+    )
+
     if (!res.ok || data.status !== 'success') {
       mappingError.value = data.error || data.llm_error || res.statusText
     } else {
