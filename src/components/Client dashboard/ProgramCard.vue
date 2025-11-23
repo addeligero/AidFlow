@@ -2,7 +2,7 @@
 import { ref, computed, type ComponentPublicInstance } from 'vue'
 import type { Program, RequirementItem, RuleItem } from '../../stores/programs'
 import { useUserStore } from '../../stores/users'
-import { useSubmissionsStore } from '../../stores/submissions'
+import { useSubmissionsStore, type ClientDocument } from '../../stores/submissions'
 import { useProgramsStore } from '../../stores/programs'
 import { providersStore } from '../../stores/providers'
 
@@ -271,10 +271,40 @@ function setFileRef(key: string, el: Element | ComponentPublicInstance | null) {
   fileRefs.value[key] = (el as HTMLInputElement) || null
 }
 
-async function onFileChange(key: string, e: Event) {
-  const target = e.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file) return
+// Reuse past documents across programs
+import supabase from '../../lib/Supabase'
+const reuseOpen = ref(false)
+const reuseKey = ref<string | null>(null)
+const pastDocs = ref<ClientDocument[]>([])
+const pastLoading = ref(false)
+
+function publicUrlFor(doc: ClientDocument) {
+  if (!doc.file_url) return ''
+  if (/^https?:\/\//i.test(doc.file_url)) return doc.file_url
+  const { data } = supabase.storage.from('client-submissions').getPublicUrl(doc.file_url)
+  return data.publicUrl
+}
+
+async function loadPastDocuments() {
+  if (!userStore.isUserLoaded) await userStore.fetchUser()
+  const clientId = userStore.user_id
+  if (!clientId) return
+  pastLoading.value = true
+  try {
+    const docs = await submissions.fetchAllUserDocuments(clientId)
+    pastDocs.value = docs
+  } finally {
+    pastLoading.value = false
+  }
+}
+
+function openReuse(key: string) {
+  reuseKey.value = key
+  reuseOpen.value = true
+  void loadPastDocuments()
+}
+
+async function processFile(key: string, file: File) {
   if (!uploads.value[key]) uploads.value[key] = { name: '', uploading: false }
   uploads.value[key].name = file.name
   uploads.value[key].uploading = true
@@ -283,21 +313,49 @@ async function onFileChange(key: string, e: Event) {
     const fd = new FormData()
     fd.append('file', file)
     fd.append('doc_type', 'printed')
-    // Upload requirement descriptions for LLM instead of rules
     if (requirements_for_LLM.value) fd.append('requirements_for_LLM', requirements_for_LLM.value)
     const res = await fetch('http://127.0.0.1:5000/upload', { method: 'POST', body: fd })
     const data = await res.json()
-    console.log('OCR upload response:', data)
+    console.log('OCR upload response (processFile):', data)
     if (!res.ok) throw new Error(data.error || res.statusText)
     uploads.value[key].file = file
     uploads.value[key].ocr = data as OcrResult
-    // Open preview modal for user to review before submitting
     previewKey.value = key
     previewOpen.value = true
   } catch (err: unknown) {
     uploads.value[key].error = err instanceof Error ? err.message : String(err)
   } finally {
     uploads.value[key].uploading = false
+  }
+}
+
+async function onFileChange(key: string, e: Event) {
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+  await processFile(key, file)
+}
+
+async function reuseDocument(doc: ClientDocument) {
+  if (!reuseKey.value) return
+  try {
+    let file: File
+    if (/^https?:\/\//i.test(doc.file_url)) {
+      // fetch remote URL and convert to blob
+      const resp = await fetch(doc.file_url)
+      const blob = await resp.blob()
+      file = new File([blob], doc.file_url.split('/').pop() || 'document')
+    } else {
+      const { data, error } = await supabase.storage
+        .from('client-submissions')
+        .download(doc.file_url)
+      if (error) throw error
+      file = new File([data], doc.file_url.split('/').pop() || 'document')
+    }
+    await processFile(reuseKey.value, file)
+    reuseOpen.value = false
+  } catch (e: unknown) {
+    alert('Failed to reuse document: ' + (e instanceof Error ? e.message : String(e)))
   }
 }
 
@@ -489,6 +547,13 @@ onMounted(async () => {
                 >
                   Upload
                 </v-btn>
+                <v-btn
+                  size="x-small"
+                  variant="text"
+                  @click="openReuse(keyForRequirement(req, idx))"
+                >
+                  Reuse
+                </v-btn>
               </template>
             </div>
             <input
@@ -635,6 +700,42 @@ onMounted(async () => {
           @click="submitCurrent"
           >Submit</v-btn
         >
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+  <!-- Reuse Existing Documents Dialog -->
+  <v-dialog v-model="reuseOpen" max-width="820">
+    <v-card>
+      <v-card-title class="text-h6">Select a Past Document</v-card-title>
+      <v-card-text>
+        <div v-if="pastLoading" class="text-medium-emphasis mb-2">Loading documents...</div>
+        <div v-else-if="!pastDocs.length" class="text-medium-emphasis mb-2">
+          No past documents found.
+        </div>
+        <v-row v-else dense>
+          <v-col v-for="doc in pastDocs" :key="doc.id" cols="12" sm="6" md="4" class="mb-3">
+            <v-sheet rounded="md" elevation="2" class="pa-2 d-flex flex-column" height="100%">
+              <v-img
+                :src="publicUrlFor(doc)"
+                height="140"
+                cover
+                class="mb-2 rounded"
+                v-if="publicUrlFor(doc)"
+              />
+              <div class="text-caption mb-1"><strong>Type:</strong> {{ doc.doc_type }}</div>
+              <div class="text-caption mb-1">
+                <strong>Path:</strong> {{ doc.file_url.split('/').pop() }}
+              </div>
+              <v-btn size="x-small" color="primary" variant="tonal" @click="reuseDocument(doc)">
+                Use
+              </v-btn>
+            </v-sheet>
+          </v-col>
+        </v-row>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="reuseOpen = false">Close</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
