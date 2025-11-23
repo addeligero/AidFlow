@@ -38,11 +38,11 @@ function requirementLabel(r: RequirementItem) {
 
 const visibleRequirements = computed(() => {
   const list = (props.program.requirements || []) as RequirementItem[]
-  return showAllReqs.value ? list : list.slice(0, 3)
+  return showAllReqs.value ? list : list.slice(0, 2)
 })
 const visibleRules = computed(() => {
   const list = (props.program.rules || []) as RuleItem[]
-  return showAllRules.value ? list : list.slice(0, 3)
+  return showAllRules.value ? list : list.slice(0, 2)
 })
 
 const fileInputs = ref<Record<string, HTMLInputElement | null>>({})
@@ -132,12 +132,12 @@ defineExpose({ triggerFilePicker })
         </v-list-item>
       </v-list>
       <div
-        v-if="(program.requirements?.length || 0) > 3 && !showAllReqs"
+        v-if="(program.requirements?.length || 0) > 2 && !showAllReqs"
         class="text-medium-emphasis text-caption mt-1"
       >
         ...
       </div>
-      <div v-if="(program.requirements?.length || 0) > 3" class="mt-2 d-flex justify-end">
+      <div v-if="(program.requirements?.length || 0) > 2" class="mt-2 d-flex justify-end">
         <v-btn size="x-small" variant="text" @click="showAllReqs = !showAllReqs">
           {{ showAllReqs ? 'Show less' : 'View all requirements' }}
         </v-btn>
@@ -171,12 +171,12 @@ defineExpose({ triggerFilePicker })
         </v-list-item>
       </v-list>
       <div
-        v-if="(program.rules?.length || 0) > 3 && !showAllRules"
+        v-if="(program.rules?.length || 0) > 2 && !showAllRules"
         class="text-caption mt-1 text-medium-emphasis"
       >
         ...
       </div>
-      <div v-if="(program.rules?.length || 0) > 3" class="mt-2 d-flex justify-end">
+      <div v-if="(program.rules?.length || 0) > 2" class="mt-2 d-flex justify-end">
         <v-btn size="x-small" variant="text" @click="showAllRules = !showAllRules">
           {{ showAllRules ? 'Show less' : 'View all rules' }}
         </v-btn>

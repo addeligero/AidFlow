@@ -280,6 +280,8 @@ function openUploadChooser(key: string) {
 
 async function reuseDocument(doc: ClientDocument) {
   if (!reuseKey.value) return
+  // Close chooser immediately for responsive UX
+  reuseOpen.value = false
   try {
     let file: File
     if (/^https?:\/\//i.test(doc.file_url)) {
@@ -294,7 +296,6 @@ async function reuseDocument(doc: ClientDocument) {
       file = new File([data], doc.file_url.split('/').pop() || 'document')
     }
     await processFile(reuseKey.value, file)
-    reuseOpen.value = false
   } catch (e: unknown) {
     alert('Failed to reuse document: ' + (e instanceof Error ? e.message : String(e)))
   }
@@ -350,6 +351,8 @@ async function submitCurrent() {
       extracted,
     }
     previewOpen.value = false
+    // Ensure chooser is definitely closed after submit
+    reuseOpen.value = false
   } catch (e: unknown) {
     state.error = e instanceof Error ? e.message : String(e)
   }
