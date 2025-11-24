@@ -204,62 +204,64 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="pa-4">
-    <div class="d-flex align-center mb-4">
-      <h2 class="text-h6 mb-0">Activity Logs</h2>
-      <v-spacer />
-      <v-btn size="small" variant="outlined" :disabled="loading" @click="$router.go(0)">
-        Refresh
-      </v-btn>
-    </div>
-    <v-alert v-if="error" type="error" variant="tonal" class="mb-4">{{ error }}</v-alert>
-    <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4" />
-    <v-table density="comfortable" v-if="sortedLogs.length">
-      <thead>
-        <tr>
-          <th style="width: 140px">Timestamp</th>
-          <th style="width: 110px">Action</th>
-          <th style="width: 120px">Table</th>
-          <th style="width: 120px">Record</th>
-          <th>Summary</th>
-          <th style="width: 70px">Details</th>
-        </tr>
-      </thead>
-      <tbody>
-        <template v-for="(row, idx) in sortedLogs" :key="row.id ?? idx">
+  <AdminLayout>
+    <div class="pa-4">
+      <div class="d-flex align-center mb-4">
+        <h2 class="text-h6 mb-0">Activity Logs</h2>
+        <v-spacer />
+        <v-btn size="small" variant="outlined" :disabled="loading" @click="$router.go(0)">
+          Refresh
+        </v-btn>
+      </div>
+      <v-alert v-if="error" type="error" variant="tonal" class="mb-4">{{ error }}</v-alert>
+      <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4" />
+      <v-table density="comfortable" v-if="sortedLogs.length">
+        <thead>
           <tr>
-            <td class="text-caption">{{ formatTimestamp(row.created_at) }}</td>
-            <td>
-              <v-chip size="x-small" color="primary" variant="tonal">{{ row.action }}</v-chip>
-            </td>
-            <td class="text-caption">{{ row.table_name }}</td>
-            <td class="text-caption text-wrap">{{ row.record_id || '—' }}</td>
-            <td class="text-caption" style="white-space: normal">
-              {{ summarizeChangeFriendly(row) }}
-            </td>
-            <td>
-              <v-btn size="x-small" variant="text" @click="toggleExpand(row, idx)">
-                {{ expanded.has(row.id ?? idx) ? 'Hide' : 'View' }}
-              </v-btn>
-            </td>
+            <th style="width: 140px">Timestamp</th>
+            <th style="width: 110px">Action</th>
+            <th style="width: 120px">Table</th>
+            <th style="width: 120px">Record</th>
+            <th>Summary</th>
+            <th style="width: 70px">Details</th>
           </tr>
-          <tr v-if="expanded.has(row.id ?? idx)" :key="'details-' + (row.id ?? idx)">
-            <td colspan="6" class="bg-grey-lighten-4">
-              <div class="text-caption">
-                <strong>Old Data:</strong>
-                <pre class="log-pre">{{ JSON.stringify(row.old_data, null, 2) }}</pre>
-              </div>
-              <div class="text-caption mt-2">
-                <strong>New Data:</strong>
-                <pre class="log-pre">{{ JSON.stringify(row.new_data, null, 2) }}</pre>
-              </div>
-            </td>
-          </tr>
-        </template>
-      </tbody>
-    </v-table>
-    <v-alert v-else-if="!loading" type="info" variant="tonal">No logs found.</v-alert>
-  </div>
+        </thead>
+        <tbody>
+          <template v-for="(row, idx) in sortedLogs" :key="row.id ?? idx">
+            <tr>
+              <td class="text-caption">{{ formatTimestamp(row.created_at) }}</td>
+              <td>
+                <v-chip size="x-small" color="primary" variant="tonal">{{ row.action }}</v-chip>
+              </td>
+              <td class="text-caption">{{ row.table_name }}</td>
+              <td class="text-caption text-wrap">{{ row.record_id || '—' }}</td>
+              <td class="text-caption" style="white-space: normal">
+                {{ summarizeChangeFriendly(row) }}
+              </td>
+              <td>
+                <v-btn size="x-small" variant="text" @click="toggleExpand(row, idx)">
+                  {{ expanded.has(row.id ?? idx) ? 'Hide' : 'View' }}
+                </v-btn>
+              </td>
+            </tr>
+            <tr v-if="expanded.has(row.id ?? idx)" :key="'details-' + (row.id ?? idx)">
+              <td colspan="6" class="bg-grey-lighten-4">
+                <div class="text-caption">
+                  <strong>Old Data:</strong>
+                  <pre class="log-pre">{{ JSON.stringify(row.old_data, null, 2) }}</pre>
+                </div>
+                <div class="text-caption mt-2">
+                  <strong>New Data:</strong>
+                  <pre class="log-pre">{{ JSON.stringify(row.new_data, null, 2) }}</pre>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </v-table>
+      <v-alert v-else-if="!loading" type="info" variant="tonal">No logs found.</v-alert>
+    </div>
+  </AdminLayout>
 </template>
 
 <style scoped>
