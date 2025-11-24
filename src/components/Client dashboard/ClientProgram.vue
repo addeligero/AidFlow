@@ -395,6 +395,18 @@ const activeOcr = computed<OcrResult | null>(() => {
   return uploads.value[key]?.ocr || null
 })
 
+// Filter out noisy auto-generated signature fields from extracted fields display
+const filteredExtractedFields = computed<Record<string, string | number | boolean>>(() => {
+  const raw = activeOcr.value?.structured_output?.extracted_fields || {}
+  const omit = new Set([
+    'signature_confidence',
+    'signature_present_external',
+    'signature_confidence_external',
+  ])
+  const entries = Object.entries(raw).filter(([k]) => !omit.has(k))
+  return Object.fromEntries(entries) as Record<string, string | number | boolean>
+})
+
 function resubmit() {
   if (!previewKey.value) return
   previewOpen.value = false
@@ -525,17 +537,14 @@ onMounted(async () => {
           <div class="text-subtitle-2 mb-1">Extracted Fields</div>
           <v-list density="compact" class="py-0">
             <v-list-item
-              v-for="(val, key) in activeOcr?.structured_output?.extracted_fields || {}"
+              v-for="(val, key) in filteredExtractedFields"
               :key="String(key)"
               class="px-0"
             >
               <v-list-item-title class="text-body-2">{{ key }}</v-list-item-title>
               <v-list-item-subtitle class="text-caption">{{ String(val) }}</v-list-item-subtitle>
             </v-list-item>
-            <v-list-item
-              v-if="!Object.keys(activeOcr?.structured_output?.extracted_fields || {}).length"
-              class="px-0"
-            >
+            <v-list-item v-if="!Object.keys(filteredExtractedFields).length" class="px-0">
               <v-list-item-subtitle class="text-caption text-medium-emphasis"
                 >No fields extracted.</v-list-item-subtitle
               >
