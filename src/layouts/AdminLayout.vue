@@ -421,12 +421,12 @@ const verifySnack = ref<{ show: boolean; text: string; color: string }>({
           <div class="text-subtitle-2 mb-1">Extracted</div>
           <v-list density="compact" class="py-0">
             <v-list-item
-              v-for="(val, key) in kycResult.extracted || {}"
-              :key="String(key)"
+              v-for="(mVal, mKey) in kycResult.extracted || {}"
+              :key="String(mKey)"
               class="px-0"
             >
-              <v-list-item-title class="text-body-2">{{ labelize(key) }}</v-list-item-title>
-              <v-list-item-subtitle class="text-caption">{{ String(val) }}</v-list-item-subtitle>
+              <v-list-item-title class="text-body-2">{{ labelize(mKey) }}</v-list-item-title>
+              <v-list-item-subtitle class="text-caption">{{ String(mVal) }}</v-list-item-subtitle>
             </v-list-item>
           </v-list>
           <template v-if="(kycResult.sanctions_matches || []).length">
