@@ -46,8 +46,10 @@ const visibleRules = computed(() => {
 })
 
 const fileInputs = ref<Record<string, HTMLInputElement | null>>({})
-function setFileRef(key: string, el: Element | null) {
-  fileInputs.value[key] = (el as HTMLInputElement) || null
+function setFileRef(key: string, el: unknown) {
+  const maybeInstance = el as { $el?: Element }
+  const domEl = maybeInstance && maybeInstance.$el ? maybeInstance.$el : (el as Element | null)
+  fileInputs.value[key] = (domEl as HTMLInputElement) || null
 }
 function triggerFilePicker(key: string) {
   fileInputs.value[key]?.click()
