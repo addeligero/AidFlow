@@ -99,7 +99,7 @@ onMounted(async () => {
     if (!uid) return
     const { data } = await supabase.from('users').select('is_verified').eq('user_id', uid).single()
     isVerified.value = !!data?.is_verified
-  } catch (e) {
+  } catch {
     console.warn('Failed to fetch is_verified')
   }
 })
@@ -177,7 +177,10 @@ async function submitKyc() {
       const { data: auth } = await supabase.auth.getUser()
       const uid = auth.user?.id
       if (uid) {
-        const { error } = await supabase.from('users').update({ is_verified: true }).eq('user_id', uid)
+        const { error } = await supabase
+          .from('users')
+          .update({ is_verified: true })
+          .eq('user_id', uid)
         if (!error) {
           isVerified.value = true
           verifySnack.value.text = 'You are now a verified user.'
@@ -257,11 +260,22 @@ const verifySnack = ref<{ show: boolean; text: string; color: string }>({
           color="primary"
         />
         <v-list-item
+          to="/AdminLogs"
+          value="/AdminLogs"
+          prepend-icon="mdi-history"
+          title="Activity Logs"
+          color="primary"
+        />
+        <v-list-item
           :prepend-icon="isVerified ? 'mdi-check-decagram' : 'mdi-account-check'"
           :title="isVerified ? `You're a verified user` : 'Verify Identity (KYC)'"
           :color="isVerified ? 'success' : 'primary'"
           :disabled="isVerified"
-          @click="() => { if (!isVerified) kycOpen = true }"
+          @click="
+            () => {
+              if (!isVerified) kycOpen = true
+            }
+          "
         />
         <v-list-item
           v-if="isSuperAdmin"
