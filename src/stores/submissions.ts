@@ -186,5 +186,13 @@ export const useSubmissionsStore = defineStore('submissions', {
       await supabase.from('client_documents').delete().eq('id', Number(documentId))
       this.documents = this.documents.filter((d) => String(d.id) !== String(documentId))
     },
+    async setDecisionTreeResult(submissionId: string | number, result: string) {
+      if (!submissionId) throw new Error('Missing submissionId for decision tree result update')
+      const { error } = await supabase
+        .from('client_submissions')
+        .update({ decision_tree_result: result })
+        .eq('id', Number(submissionId))
+      if (error) throw error
+    },
   },
 })

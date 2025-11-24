@@ -457,6 +457,7 @@ async function saveTrainingResultToDb() {
     // Refresh latest saved
     latestTrainingSaved.value = await store.fetchLatestTrainingResult(currentId.value)
     emit('notify', { text: 'Training result saved' })
+    trainResultOpen.value = false
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
     console.error('Failed to save training result:', msg)

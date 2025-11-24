@@ -175,6 +175,50 @@ async function predictEligibility() {
     } else {
       mappedFeatures.value = data.features || null
       featureSchema.value = data.feature_schema || featureSchema.value
+      // Persist eligibility decision in client_submissions.decision_tree_result
+      try {
+        // Ensure we have a submission id; if not, attempt to locate pending one
+        if (!submissionId.value && userStore.user_id) {
+          submissionId.value = await submissions.findOrGetPendingSubmission(
+            userStore.user_id,
+            props.program.id as string | number,
+          )
+        }
+        if (submissionId.value) {
+          const decision = isEligible.value ? 'eligible' : 'not eligible'
+          const subsAny: unknown = submissions
+          const maybeSetter = (
+            subsAny as { setDecisionTreeResult?: (id: string | number, r: string) => Promise<void> }
+          ).setDecisionTreeResult
+          if (typeof maybeSetter === 'function') {
+            await maybeSetter(submissionId.value, decision)
+            console.log(
+              '[predictEligibility] Stored decision_tree_result via store action:',
+              decision,
+            )
+          } else {
+            // Fallback direct Supabase update if action not available (HMR or stale store instance)
+            const { error: dtError } = await supabase
+              .from('client_submissions')
+              .update({ decision_tree_result: decision })
+              .eq('id', Number(submissionId.value))
+            if (dtError) {
+              console.error('[predictEligibility] Fallback update failed:', dtError)
+            } else {
+              console.log(
+                '[predictEligibility] Stored decision_tree_result via fallback:',
+                decision,
+              )
+            }
+          }
+        } else {
+          console.warn(
+            '[predictEligibility] No submissionId available to store decision_tree_result',
+          )
+        }
+      } catch (persistErr) {
+        console.error('[predictEligibility] Failed to store decision_tree_result', persistErr)
+      }
     }
     predictOpen.value = true
   } catch (err: unknown) {
@@ -622,7 +666,7 @@ onMounted(async () => {
               class="px-0"
             >
               <v-list-item-title class="text-body-2 text-wrap">{{ req.name }}</v-list-item-title>
-              <v-list-item-subtitle class="text-caption requirement-subtitle">{{
+              <v-list-item-subtitle class="text-caption requirement-subtitle text-wrap">{{
                 req.description || req.name
               }}</v-list-item-subtitle>
             </v-list-item>
@@ -722,5 +766,21 @@ onMounted(async () => {
 }
 .client-program-wrapper {
   width: 100%;
+}
+/* Ensure wrapped text inside list items (titles/subtitles) actually wraps instead of truncating */
+:deep(.text-wrap),
+:deep(.requirement-subtitle),
+:deep(.v-list-item-title.text-wrap),
+:deep(.v-list-item-subtitle.text-wrap) {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  display: block; /* enforce block so long text can wrap */
+}
+
+/* If Vuetify applies max-width constraints, relax them within dialogs */
+:deep(.v-dialog .v-list-item-title.text-wrap),
+:deep(.v-dialog .v-list-item-subtitle.text-wrap) {
+  max-width: 100% !important;
 }
 </style>
