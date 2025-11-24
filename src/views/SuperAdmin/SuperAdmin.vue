@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, defineAsyncComponent } from 'vue'
+import { computed, ref, defineAsyncComponent, onMounted } from 'vue'
 const AdminLayout = defineAsyncComponent(() => import('../../layouts/AdminLayout.vue'))
 import { providersStore } from '../../stores/providers'
 import supabase from '../../lib/Supabase'
@@ -9,37 +9,28 @@ import { useProgramsStore } from '../../stores/programs'
 
 const ps = providersStore()
 const progStore = useProgramsStore()
-type BasicUser = {
-  id: string
-  first_name: string
-  last_name: string
-  email: string
-  created_at: string
-}
-const users = ref<BasicUser[]>([])
+// Privacy: do not load individual user rows, only total count via RPC respecting RLS.
 const usersLoading = ref(false)
+const totalUsers = ref<number>(0)
 const errorMsg = ref('')
 
-const fetchUsers = async () => {
+const fetchUserCount = async () => {
   usersLoading.value = true
   errorMsg.value = ''
-  const { data, error } = await supabase
-    .from('users')
-    .select('id,first_name,last_name,email,created_at')
+  const { data, error } = await supabase.rpc('get_user_count')
   if (error) {
     errorMsg.value = error.message
-    users.value = []
+    totalUsers.value = 0
   } else {
-    users.value = data || []
+    console.log('Fetched user count:', data)
+    totalUsers.value = data ? Number(data) : 0
   }
   usersLoading.value = false
 }
 
 const refreshAll = async () => {
-  await Promise.all([ps.fetchProviders(), ps.fetchRules(), progStore.fetchPrograms(), fetchUsers()])
+  await Promise.all([ps.fetchProviders(), progStore.fetchPrograms(), fetchUserCount()])
 }
-
-const totalUsers = computed(() => users.value.length)
 const totalProviders = computed(() => ps.providers.length)
 const totalPrograms = computed(() => progStore.programs.length)
 const approvedProviders = computed(() => ps.providers.filter((p) => p.status === 'approved').length)
@@ -52,7 +43,7 @@ const recentProviders = computed(() =>
     .sort((a, b) => (b.status === 'pending' ? 1 : 0) - (a.status === 'pending' ? 1 : 0))
     .slice(0, 5),
 )
-const recentRules = computed(() => [...ps.rules].sort((a, b) => (b.id > a.id ? -1 : 1)).slice(0, 5))
+// recentRules removed per request
 
 // Moderation state
 const loadingIds = ref<Set<string>>(new Set())
@@ -141,9 +132,11 @@ async function rejectProvider() {
 const providersLoading = computed<boolean>(() =>
   Boolean((ps as unknown as { providersLoading?: boolean }).providersLoading),
 )
-const rulesLoading = computed<boolean>(() =>
-  Boolean((ps as unknown as { rulesLoading?: boolean }).rulesLoading),
-)
+// rulesLoading removed
+
+onMounted(() => {
+  refreshAll()
+})
 
 const reasonDialog = ref(false)
 const reasonAgency = ref('')
@@ -186,16 +179,6 @@ function copyReason() {
 <template>
   <AdminLayout>
     <v-container fluid class="py-4">
-      <v-card class="mb-6" elevation="6">
-        <v-card-text>
-          <SuperAdminChart
-            :total-providers="totalProviders"
-            :total-programs="totalPrograms"
-            :approved-providers="approvedProviders"
-            :disapproved-providers="disapprovedProviders"
-          />
-        </v-card-text>
-      </v-card>
       <div class="d-flex align-center mb-4">
         <h2 class="text-h6 text-md-h5 me-3">Super Admin Dashboard</h2>
         <v-spacer />
@@ -217,9 +200,17 @@ function copyReason() {
           <SuperCard color="success" :totalNumber="totalPrograms" caption="Total Programs" />
         </v-col>
       </v-row>
+      <SuperAdminChart
+        :total-providers="totalProviders"
+        :total-programs="totalPrograms"
+        :approved-providers="approvedProviders"
+        :disapproved-providers="disapprovedProviders"
+        class="border"
+      />
+      <br />
 
       <v-row>
-        <v-col cols="12" md="6">
+        <v-col cols="12">
           <v-card class="mb-4">
             <v-card-title class="d-flex align-center">
               <span>Recent Provider Applications</span>
@@ -282,27 +273,6 @@ function copyReason() {
             </v-list>
           </v-card>
         </v-col>
-        <v-col cols="12" md="6">
-          <v-card class="mb-4">
-            <v-card-title>Recent Rules</v-card-title>
-            <v-divider />
-            <v-list>
-              <v-list-item v-for="r in recentRules" :key="r.id">
-                <v-list-item-title>{{ r.rule_name }}</v-list-item-title>
-                <v-list-item-subtitle>
-                  <span v-if="r.provider">{{ r.provider.agency_name }}</span>
-                  <span v-else>Unknown Provider</span>
-                </v-list-item-subtitle>
-                <template #append>
-                  <v-chip size="x-small" color="primary">{{ r.subsidy_amount ?? '—' }}</v-chip>
-                </template>
-              </v-list-item>
-              <v-list-item v-if="rulesLoading">
-                <v-skeleton-loader type="list-item-two-line" />
-              </v-list-item>
-            </v-list>
-          </v-card>
-        </v-col>
       </v-row>
 
       <!-- Reject dialog -->
@@ -344,3 +314,7 @@ function copyReason() {
     </v-container>
   </AdminLayout>
 </template>
+
+<style scoped>
+/* Removed detailed user table styles; only count is shown now */
+</style>

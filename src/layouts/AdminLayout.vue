@@ -259,13 +259,7 @@ const verifySnack = ref<{ show: boolean; text: string; color: string }>({
           title="Dashboard"
           color="primary"
         />
-        <v-list-item
-          to="/AdminLogs"
-          value="/AdminLogs"
-          prepend-icon="mdi-history"
-          title="Activity Logs"
-          color="primary"
-        />
+
         <v-list-item
           :prepend-icon="isVerified ? 'mdi-check-decagram' : 'mdi-account-check'"
           :title="isVerified ? `You're a verified user` : 'Verify Identity (KYC)'"
@@ -297,6 +291,13 @@ const verifySnack = ref<{ show: boolean; text: string; color: string }>({
           value="/dashboard"
           prepend-icon="mdi-account-circle"
           title="Client Dashboard"
+          color="primary"
+        />
+        <v-list-item
+          to="/AdminLogs"
+          value="/AdminLogs"
+          prepend-icon="mdi-history"
+          title="Activity Logs"
           color="primary"
         />
       </v-list>
