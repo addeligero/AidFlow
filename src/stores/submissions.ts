@@ -30,10 +30,17 @@ export const useSubmissionsStore = defineStore('submissions', {
     documents: [] as ClientDocument[],
     userDocsLoading: false as boolean,
     allUserDocuments: [] as ClientDocument[],
+    currentSubmissionId: null as string | number | null,
+    lastCheckedSubmission: {} as Record<string, string | null>,
+    lastUserDocsLoadedFor: null as string | number | null,
   }),
   actions: {
     async findOrGetPendingSubmission(clientId: string | number, programId: string | number) {
-      // Try to find an existing pending submission first
+      const key = `${clientId}-${programId}`
+      if (this.lastCheckedSubmission[key] !== undefined) {
+        console.debug('📌 Skipping fetch — cached pending submission')
+        return this.lastCheckedSubmission[key]
+      }
       const { data, error } = await supabase
         .from('client_submissions')
         .select('id')
@@ -43,8 +50,12 @@ export const useSubmissionsStore = defineStore('submissions', {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
-      if (!error && data) return String(data.id)
-      return null
+
+      const result = !error && data ? String(data.id) : null
+
+      this.lastCheckedSubmission[key] = result
+
+      return result
     },
     async createSubmission(clientId: string | number, programId: string | number) {
       this.creating = true
@@ -140,20 +151,36 @@ export const useSubmissionsStore = defineStore('submissions', {
       }
     },
     async fetchDocuments(submissionId: string | number) {
+      submissionId = String(submissionId)
+
+      // If already loaded for the same submission → skip
+      if (this.currentSubmissionId === submissionId && this.documents.length > 0) {
+        console.debug('📌 Skipping fetchDocuments — already loaded for this submission.')
+        return this.documents
+      }
+
       this.docsLoading = true
+      this.currentSubmissionId = submissionId
       try {
         const { data, error } = await supabase
           .from('client_documents')
           .select('*')
           .eq('submission_id', Number(submissionId))
           .order('created_at', { ascending: false })
+
         if (error) throw error
         this.documents = (data || []) as ClientDocument[]
+        return this.documents
       } finally {
         this.docsLoading = false
       }
     },
     async fetchAllUserDocuments(clientId: string | number) {
+      if (this.lastUserDocsLoadedFor == clientId && this.allUserDocuments.length > 0) {
+        console.debug('📌 Skipping fetchAllUserDocuments — already loaded')
+        return this.allUserDocuments
+      }
+
       this.userDocsLoading = true
       try {
         // Join client_documents with client_submissions to filter by client_id
@@ -173,6 +200,7 @@ export const useSubmissionsStore = defineStore('submissions', {
           }
           return clone as ClientDocument
         })
+        this.lastUserDocsLoadedFor = clientId
         return this.allUserDocuments
       } finally {
         this.userDocsLoading = false
