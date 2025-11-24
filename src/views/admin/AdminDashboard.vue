@@ -7,6 +7,7 @@ import { useUserStore } from '../../stores/users'
 import { providersStore } from '../../stores/providers'
 // Use provider logo; no static fallback import to avoid TS asset typing issues
 import supabase from '../../lib/Supabase'
+import AdminEligibilityChart from './AdminEligibilityChart.vue'
 
 const userStore = useUserStore()
 const provStore = providersStore()
@@ -204,7 +205,10 @@ const saveEdits = async () => {
         >Edit</v-btn
       >
     </v-card>
-
+    <AdminEligibilityChart />
+    <br />
+    <hr />
+    <br />
     <!-- Programs grid -->
     <v-row>
       <v-col v-for="p in myPrograms" :key="p.id" cols="12" sm="6" md="4" lg="3" class="d-flex">

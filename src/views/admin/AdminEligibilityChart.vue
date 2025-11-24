@@ -1,18 +1,31 @@
 <template>
-  <div class="pa-4">
-    <div class="d-flex align-center mb-2">
+  <div class="pa-4 eligibility-chart-root border-md">
+    <div class="d-flex align-center mb-3 header-row">
       <h2 class="text-h6 mb-0">Eligibility by Program</h2>
       <v-spacer />
-      <v-btn size="small" variant="outlined" :disabled="loading" @click="reload">Refresh</v-btn>
+      <v-btn
+        size="small"
+        variant="outlined"
+        :disabled="loading"
+        @click="reload"
+        prepend-icon="mdi-refresh"
+        >Refresh</v-btn
+      >
     </div>
     <v-alert v-if="error" type="error" variant="tonal" class="mb-3">{{ error }}</v-alert>
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-3" />
-    <Bar v-if="chartData.labels.length" :data="chartData" :options="options" />
-    <div v-else-if="!loading" class="text-caption text-medium-emphasis mt-2">
-      No programs found.
+    <div v-if="chartData.labels.length" class="chart-container">
+      <Bar :data="chartData" :options="options" class="chart" />
     </div>
-    <div class="text-caption text-medium-emphasis mt-2">
-      Counts of clients marked eligible per program
+    <v-empty-state
+      v-else-if="!loading"
+      icon="mdi-chart-bar"
+      title="No Data"
+      text="No programs found for this provider."
+      class="mt-2"
+    />
+    <div class="text-caption text-medium-emphasis mt-3 info-text">
+      Eligible client counts per program. Smaller bars mean fewer marked eligible.
     </div>
   </div>
 </template>
@@ -55,12 +68,34 @@ const chartData = ref<{
 
 const options = {
   responsive: true,
+  maintainAspectRatio: false,
+  aspectRatio: 2, // will be overridden by container height
+  animation: { duration: 450 },
+  layout: { padding: { top: 8, right: 12, bottom: 4, left: 12 } },
   plugins: {
     legend: { display: false },
-    title: { display: true, text: 'Eligible Users per Program' },
+    title: {
+      display: true,
+      text: 'Eligible Users per Program',
+      font: { size: 14, weight: '600' },
+      color: '#374151',
+    },
+    tooltip: {
+      callbacks: {
+        label: (ctx: any) => ` ${ctx.parsed.y} eligible`,
+      },
+    },
   },
   scales: {
-    y: { beginAtZero: true, ticks: { stepSize: 1 } },
+    x: {
+      ticks: { color: '#4b5563', font: { size: 11 } },
+      grid: { display: false },
+    },
+    y: {
+      beginAtZero: true,
+      ticks: { stepSize: 1, color: '#4b5563', font: { size: 11 } },
+      grid: { color: 'rgba(0,0,0,0.06)' },
+    },
   },
 }
 
@@ -126,4 +161,37 @@ async function reload() {
 reload()
 </script>
 
-<style scoped></style>
+<style scoped>
+.eligibility-chart-root {
+  max-width: 860px;
+  margin: 0 auto;
+}
+.chart-container {
+  max-width: 640px;
+  margin: 0 auto;
+  background: var(--v-theme-surface);
+  border: 1px solid var(--v-theme-outline-variant);
+  border-radius: 16px;
+  padding: 12px 18px 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.chart {
+  display: block;
+  height: 320px; /* Controlled height */
+}
+@media (max-width: 640px) {
+  .chart-container {
+    padding: 8px 12px 6px;
+  }
+  .chart {
+    height: 260px;
+  }
+}
+.info-text {
+  max-width: 640px;
+  margin: 0 auto;
+}
+.header-row h2 {
+  font-weight: 600;
+}
+</style>

@@ -11,7 +11,7 @@ import { providersStore } from '../stores/providers'
 import AdminPrograms from '../views/admin/MyProgram.vue'
 import SuperAdmin from '../views/SuperAdmin/SuperAdmin.vue'
 import AllProviders from '../views/SuperAdmin/AllProviders.vue'
-import AdminEligibilityChart from '../views/admin/AdminEligibilityChart.vue'
+
 import AdminActivityLogs from '../views/admin/AdminActivityLogs.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -68,12 +68,6 @@ const router = createRouter({
       name: 'All Providers',
       component: AllProviders,
       meta: { requiresAuth: true, requiresAdmin: true, requiresSuper: true },
-    },
-    {
-      path: '/AdminEligibility',
-      name: 'Eligibility Chart',
-      component: AdminEligibilityChart,
-      meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
       path: '/AdminLogs',
