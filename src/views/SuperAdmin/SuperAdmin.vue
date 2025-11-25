@@ -211,35 +211,78 @@ function copyReason() {
 
       <v-row>
         <v-col cols="12">
-          <v-card class="mb-4">
+          <v-card class="mb-4 provider-card" elevation="6" rounded="lg">
             <v-card-title class="d-flex align-center">
-              <span>Recent Provider Applications</span>
+              <v-icon icon="mdi-clipboard-list-outline" class="me-2" />
+              <span class="text-subtitle-1">Recent Provider Applications</span>
               <v-spacer />
-              <v-btn to="/super/providers" size="x-small" variant="text">view all</v-btn>
+              <v-btn
+                to="/super/providers"
+                size="x-small"
+                variant="text"
+                prepend-icon="mdi-open-in-new"
+                >view all</v-btn
+              >
             </v-card-title>
+            <v-card-subtitle class="text-caption text-medium-emphasis px-4 pb-2">
+              Last 5 applications (pending shown first)
+            </v-card-subtitle>
             <v-divider />
-            <v-list>
-              <v-list-item v-for="p in recentProviders" :key="p.id">
+            <v-list class="provider-list" density="comfortable">
+              <v-list-item
+                v-for="p in recentProviders"
+                :key="p.id"
+                class="provider-item"
+                :class="{ 'rejected-item': p.status === 'rejected' }"
+                @click="p.status === 'rejected' ? openReason(p) : undefined"
+              >
                 <template #prepend>
-                  <v-avatar size="32" v-if="p.logo">
-                    <img :src="p.logo" alt="logo" />
+                  <v-avatar size="36">
+                    <template v-if="p.logo">
+                      <img :src="p.logo" alt="logo" />
+                    </template>
+                    <template v-else>
+                      <v-icon icon="mdi-domain" />
+                    </template>
                   </v-avatar>
                 </template>
-                <v-list-item-title>{{ p.agency_name }}</v-list-item-title>
-                <v-list-item-subtitle>
-                  <v-chip
-                    :color="
-                      p.status === 'approved'
-                        ? 'success'
-                        : p.status === 'pending'
-                          ? 'warning'
-                          : 'error'
-                    "
-                    size="x-small"
-                  >
-                    {{ p.status }}
-                  </v-chip>
-                </v-list-item-subtitle>
+
+                <div class="provider-text">
+                  <div class="provider-title">{{ p.agency_name }}</div>
+                  <div class="provider-meta">
+                    <v-chip
+                      :color="
+                        p.status === 'approved'
+                          ? 'success'
+                          : p.status === 'pending'
+                            ? 'warning'
+                            : 'error'
+                      "
+                      size="x-small"
+                      :variant="p.status === 'rejected' ? 'outlined' : 'tonal'"
+                      class="me-2"
+                      :class="{ 'chip-clickable': p.status === 'rejected' }"
+                      @click.stop="p.status === 'rejected' && openReason(p)"
+                    >
+                      <v-icon
+                        :icon="
+                          p.status === 'approved'
+                            ? 'mdi-check-circle'
+                            : p.status === 'pending'
+                              ? 'mdi-timer-sand'
+                              : 'mdi-close-circle'
+                        "
+                        size="16"
+                        class="me-1"
+                      />
+                      {{ p.status }}
+                    </v-chip>
+                    <span v-if="p.program" class="text-caption text-medium-emphasis">{{
+                      p.program
+                    }}</span>
+                  </div>
+                </div>
+
                 <template #append>
                   <div v-if="p.status === 'pending'" class="d-flex ga-2">
                     <v-btn
@@ -265,10 +308,26 @@ function copyReason() {
                       Reason
                     </v-btn>
                   </div>
+                  <div
+                    v-else-if="p.status === 'approved'"
+                    class="text-caption text-success d-flex align-center"
+                  >
+                    <v-icon icon="mdi-check-circle" size="18" class="me-1" /> Approved
+                  </div>
                 </template>
               </v-list-item>
+
               <v-list-item v-if="providersLoading">
                 <v-skeleton-loader type="list-item-avatar, list-item-two-line" />
+              </v-list-item>
+
+              <v-list-item v-if="!providersLoading && !recentProviders.length">
+                <v-empty-state
+                  headline="No recent applications"
+                  title="No items"
+                  text="Provider applications will appear here."
+                  icon="mdi-clipboard-list-outline"
+                />
               </v-list-item>
             </v-list>
           </v-card>
@@ -317,4 +376,36 @@ function copyReason() {
 
 <style scoped>
 /* Removed detailed user table styles; only count is shown now */
+
+.provider-card {
+  border: 1px solid var(--v-theme-outline-variant);
+}
+.provider-list {
+  padding: 8px 10px;
+}
+.provider-item {
+  border: 1px solid var(--v-theme-outline-variant);
+  border-radius: 12px;
+  margin: 8px 8px;
+  padding: 8px 10px;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.provider-item:hover {
+  background: var(--v-theme-surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.rejected-item {
+  cursor: pointer;
+}
+.provider-title {
+  font-weight: 600;
+}
+.provider-meta {
+  margin-top: 4px;
+}
+.chip-clickable {
+  cursor: pointer;
+}
 </style>

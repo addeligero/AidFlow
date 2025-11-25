@@ -14,6 +14,7 @@ const userStore = useUserStore()
 const status = ref<'approved' | 'pending' | 'rejected' | 'not a provider'>('not a provider')
 const showPendingDialog = ref(false)
 const showRejectedDialog = ref(false)
+const rejectionReason = ref<string>('No reason provided.')
 
 import type { RealtimeChannel } from '@supabase/supabase-js'
 const channel = ref<RealtimeChannel | null>(null)
@@ -207,12 +208,25 @@ const providerActionLabel = computed(() => {
   return 'Be a Provider'
 })
 
-const handleProviderAction = () => {
+const handleProviderAction = async () => {
   if (status.value === 'approved') {
     router.push('/admin')
   } else if (status.value === 'pending') {
     showPendingDialog.value = true
   } else if (status.value === 'rejected') {
+    // Fetch rejection reason before showing dialog
+    try {
+      const { data, error } = await supabase
+        .from('providers')
+        .select('rejection_reason')
+        .eq('id', userStore.user_id)
+        .single()
+      if (!error && data) {
+        rejectionReason.value = data.rejection_reason || 'No reason provided.'
+      }
+    } catch (e) {
+      console.warn('Failed to fetch rejection reason:', e)
+    }
     showRejectedDialog.value = true
   } else {
     router.push('/application')
@@ -617,12 +631,19 @@ function resetKycForm() {
   </v-dialog>
 
   <!-- Rejected Status Dialog -->
-  <v-dialog v-model="showRejectedDialog" max-width="420">
+  <v-dialog v-model="showRejectedDialog" max-width="480">
     <v-card>
       <v-card-title class="text-h6">Application Rejected</v-card-title>
       <v-card-text>
-        Unfortunately, your provider application was not approved. You may update your information
-        and apply again.
+        <p class="mb-3">
+          Unfortunately, your provider application was not approved. You may update your information
+          and apply again.
+        </p>
+        <v-divider class="my-3" />
+        <div class="text-subtitle-2 mb-2">Rejection Reason:</div>
+        <v-alert type="error" variant="tonal" class="text-body-2">
+          {{ rejectionReason }}
+        </v-alert>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
