@@ -388,6 +388,12 @@ const trainRunning = ref(false)
 const trainResultOpen = ref(false)
 const trainResult = ref<TrainExtractResponse | null>(null)
 // Model training state
+type ClassificationMetrics = {
+  precision: number
+  recall: number
+  'f1-score': number
+  support: number
+}
 type ModelTrainResponse = {
   status: 'success' | 'fail'
   program_id?: string | number
@@ -396,6 +402,8 @@ type ModelTrainResponse = {
   file_path?: string
   csv_path?: string
   csv?: string
+  classification_report?: Record<string, ClassificationMetrics | number>
+  confusion_matrix?: number[][]
   error?: string
 }
 const modelTraining = ref(false)
@@ -807,6 +815,60 @@ function downloadSavedCsv() {
                 >
                   Features: {{ modelTrainResponse.feature_schema.join(', ') }}
                 </div>
+
+                <!-- Classification Report -->
+                <div class="mb-2" v-if="modelTrainResponse.classification_report">
+                  <div class="text-subtitle-2 mb-1">Classification Report</div>
+                  <v-table density="compact" class="mb-2">
+                    <thead>
+                      <tr>
+                        <th class="text-left">Class</th>
+                        <th class="text-right">Precision</th>
+                        <th class="text-right">Recall</th>
+                        <th class="text-right">F1-Score</th>
+                        <th class="text-right">Support</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(metrics, className) in modelTrainResponse.classification_report" :key="String(className)">
+                        <template v-if="className !== 'accuracy' && typeof metrics === 'object' && metrics !== null">
+                          <td class="text-left font-weight-medium">{{ className }}</td>
+                          <td class="text-right">{{ (metrics.precision * 100).toFixed(1) }}%</td>
+                          <td class="text-right">{{ (metrics.recall * 100).toFixed(1) }}%</td>
+                          <td class="text-right">{{ (metrics['f1-score'] * 100).toFixed(1) }}%</td>
+                          <td class="text-right">{{ metrics.support }}</td>
+                        </template>
+                      </tr>
+                    </tbody>
+                  </v-table>
+                </div>
+
+                <!-- Confusion Matrix -->
+                <div class="mb-2" v-if="modelTrainResponse.confusion_matrix">
+                  <div class="text-subtitle-2 mb-1">Confusion Matrix</div>
+                  <v-table density="compact" class="mb-2">
+                    <thead>
+                      <tr>
+                        <th class="text-left"></th>
+                        <th class="text-center">Predicted Eligible</th>
+                        <th class="text-center">Predicted Not Eligible</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="font-weight-medium">Actual Eligible</td>
+                        <td class="text-center">{{ modelTrainResponse.confusion_matrix[0]?.[0] ?? 0 }}</td>
+                        <td class="text-center">{{ modelTrainResponse.confusion_matrix[0]?.[1] ?? 0 }}</td>
+                      </tr>
+                      <tr>
+                        <td class="font-weight-medium">Actual Not Eligible</td>
+                        <td class="text-center">{{ modelTrainResponse.confusion_matrix[1]?.[0] ?? 0 }}</td>
+                        <td class="text-center">{{ modelTrainResponse.confusion_matrix[1]?.[1] ?? 0 }}</td>
+                      </tr>
+                    </tbody>
+                  </v-table>
+                </div>
+
                 <div class="wrap-text mb-1" v-if="modelTrainResponse.file_path">
                   Saved to: {{ modelTrainResponse.file_path }}
                 </div>

@@ -686,7 +686,9 @@ onMounted(async () => {
             </v-list-item>
           </v-list>
           <v-divider class="my-3" />
-          <div class="text-subtitle-2 mb-2">Rules ({{ program.rules?.length || 0 }})</div>
+          <div class="text-subtitle-2 mb-2">
+            Guidelines/Eligibility ({{ program.rules?.length || 0 }})
+          </div>
           <v-list density="compact" class="py-0">
             <v-list-item v-for="(r, idx) in program.rules" :key="`detail-rule-${idx}`" class="px-0">
               <v-list-item-title class="text-body-2">
