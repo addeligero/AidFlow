@@ -112,15 +112,23 @@ defineExpose({ triggerFilePicker })
                 </v-btn>
               </template>
               <template v-else>
-                <v-btn
-                  size="x-small"
-                  variant="tonal"
-                  color="primary"
-                  :loading="uploads[keyForRequirement(req, idx)]?.uploading"
-                  @click="emit('open-upload', keyForRequirement(req, idx))"
-                >
-                  Upload
-                </v-btn>
+                <div class="d-flex flex-column align-end">
+                  <v-btn
+                    size="x-small"
+                    variant="tonal"
+                    color="primary"
+                    :loading="uploads[keyForRequirement(req, idx)]?.uploading"
+                    @click="emit('open-upload', keyForRequirement(req, idx))"
+                  >
+                    Upload
+                  </v-btn>
+                  <div
+                    v-if="uploads[keyForRequirement(req, idx)]?.uploading"
+                    class="border text-medium-emphasis mt-1"
+                  >
+                    uploading, this may take a while....
+                  </div>
+                </div>
               </template>
             </div>
             <input

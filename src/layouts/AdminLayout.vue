@@ -283,7 +283,7 @@ const verifySnack = ref<{ show: boolean; text: string; color: string }>({
           to="/AdminPrograms"
           value="/AdminPrograms"
           prepend-icon="mdi-account-multiple"
-          title="Edit programs"
+          title="Add/Edit programs"
           color="primary"
         />
         <v-list-item

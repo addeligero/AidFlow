@@ -661,7 +661,8 @@ onMounted(async () => {
             <strong>Provider:</strong> <span class="text-medium-emphasis">{{ providerName }}</span>
           </div>
           <div class="text-body-2 mb-4">
-            <strong>Description:</strong>
+            <strong>Description</strong>
+            <br />
             <span class="text-medium-emphasis">{{ program.description || 'No description' }}</span>
           </div>
           <v-divider class="my-3" />
