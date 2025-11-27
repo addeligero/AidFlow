@@ -830,8 +830,17 @@ function downloadSavedCsv() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="(metrics, className) in modelTrainResponse.classification_report" :key="String(className)">
-                        <template v-if="className !== 'accuracy' && typeof metrics === 'object' && metrics !== null">
+                      <tr
+                        v-for="(metrics, className) in modelTrainResponse.classification_report"
+                        :key="String(className)"
+                      >
+                        <template
+                          v-if="
+                            className !== 'accuracy' &&
+                            typeof metrics === 'object' &&
+                            metrics !== null
+                          "
+                        >
                           <td class="text-left font-weight-medium">{{ className }}</td>
                           <td class="text-right">{{ (metrics.precision * 100).toFixed(1) }}%</td>
                           <td class="text-right">{{ (metrics.recall * 100).toFixed(1) }}%</td>
@@ -857,13 +866,21 @@ function downloadSavedCsv() {
                     <tbody>
                       <tr>
                         <td class="font-weight-medium">Actual Eligible</td>
-                        <td class="text-center">{{ modelTrainResponse.confusion_matrix[0]?.[0] ?? 0 }}</td>
-                        <td class="text-center">{{ modelTrainResponse.confusion_matrix[0]?.[1] ?? 0 }}</td>
+                        <td class="text-center">
+                          {{ modelTrainResponse.confusion_matrix[0]?.[0] ?? 0 }}
+                        </td>
+                        <td class="text-center">
+                          {{ modelTrainResponse.confusion_matrix[0]?.[1] ?? 0 }}
+                        </td>
                       </tr>
                       <tr>
                         <td class="font-weight-medium">Actual Not Eligible</td>
-                        <td class="text-center">{{ modelTrainResponse.confusion_matrix[1]?.[0] ?? 0 }}</td>
-                        <td class="text-center">{{ modelTrainResponse.confusion_matrix[1]?.[1] ?? 0 }}</td>
+                        <td class="text-center">
+                          {{ modelTrainResponse.confusion_matrix[1]?.[0] ?? 0 }}
+                        </td>
+                        <td class="text-center">
+                          {{ modelTrainResponse.confusion_matrix[1]?.[1] ?? 0 }}
+                        </td>
                       </tr>
                     </tbody>
                   </v-table>
@@ -938,12 +955,7 @@ function downloadSavedCsv() {
               <div class="text-subtitle-2 mb-1">Notes</div>
               <pre class="wrap-text">{{ latestTrainingSaved.notes }}</pre>
             </div>
-            <div class="wrap-text mb-1" v-if="latestTrainingSaved.model_path">
-              Model Path: {{ latestTrainingSaved.model_path }}
-            </div>
-            <div class="wrap-text mb-1" v-if="latestTrainingSaved.csv_path">
-              Data CSV: {{ latestTrainingSaved.csv_path }}
-            </div>
+
             <div class="d-flex gap-2 mb-2" v-if="latestTrainingSaved.csv_path"></div>
             <div class="text-caption mt-2">Trained at: {{ latestTrainingSaved.created_at }}</div>
           </div>

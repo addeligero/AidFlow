@@ -75,9 +75,6 @@ function openEditRequirement(idx: number) {
 }
 function confirmSaveRequirement() {
   if (!reqModel.value.name.trim()) return
-  if (reqModel.value.type === 'condition') {
-    if (!reqModel.value.field_key?.toString().trim() || !reqModel.value.operator) return
-  }
   const list = [...props.requirements]
   if (reqEditIndex.value === null) list.push({ ...reqModel.value })
   else list.splice(reqEditIndex.value, 1, { ...reqModel.value })
@@ -209,12 +206,7 @@ function cancelRule() {
               <tr v-for="(r, idx) in props.requirements" :key="idx">
                 <td>{{ r.type }}</td>
                 <td>{{ r.name }}</td>
-                <td>
-                  <span v-if="r.type === 'document'">{{ r.description || '—' }}</span>
-                  <span v-else>
-                    {{ r.field_key }} {{ r.operator }} {{ stringifyValue(r.value) }}
-                  </span>
-                </td>
+                <td>{{ r.description || '—' }}</td>
                 <td class="text-right">
                   <v-btn size="x-small" variant="text" @click="openEditRequirement(idx)"
                     >Edit</v-btn
@@ -300,53 +292,18 @@ function cancelRule() {
         reqEditIndex === null ? 'Add Requirement' : 'Edit Requirement'
       }}</v-card-title>
       <v-card-text>
-        <v-select
-          label="Type"
-          :items="['document', 'condition']"
-          :model-value="reqModel.type"
-          @update:modelValue="setReqType"
-        />
         <v-text-field
-          label="Name"
+          label="Document Name"
           :model-value="reqModel.name"
           @update:modelValue="(v) => (reqModel.name = v)"
           required
         />
-        <template v-if="reqModel.type === 'document'">
-          <v-textarea
-            label="Description"
-            rows="3"
-            :model-value="reqModel.description || ''"
-            @update:modelValue="(v) => (reqModel.description = v)"
-          />
-        </template>
-        <template v-else>
-          <v-text-field
-            label="Field Key"
-            :model-value="reqModel.field_key || ''"
-            @update:modelValue="(v) => (reqModel.field_key = v)"
-          />
-          <v-select
-            label="Operator"
-            :items="[
-              'equals',
-              'not_equals',
-              'less_than',
-              'less_or_equal',
-              'greater_than',
-              'greater_or_equal',
-              'includes',
-              'exists',
-            ]"
-            :model-value="reqModel.operator"
-            @update:modelValue="setReqOperator"
-          />
-          <v-text-field
-            label="Value"
-            :model-value="reqModel.value"
-            @update:modelValue="(v) => (reqModel.value = v)"
-          />
-        </template>
+        <v-textarea
+          label="Description"
+          rows="3"
+          :model-value="reqModel.description || ''"
+          @update:modelValue="(v) => (reqModel.description = v)"
+        />
       </v-card-text>
       <v-card-actions>
         <v-spacer />

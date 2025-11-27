@@ -110,12 +110,12 @@ async function reload() {
     // 1) Fetch programs for this provider
     const { data: progRows, error: pErr } = await supabase
       .from('programs')
-      .select('id,name')
+      .select('id,category')
       .eq('provider_id', providerId)
       .order('created_at', { ascending: false })
     if (pErr) throw pErr
 
-    const programs = (progRows || []) as Array<{ id: number | string; name: string }>
+    const programs = (progRows || []) as Array<{ id: number | string; category: string }>
     if (programs.length === 0) {
       chartData.value = { labels: [], datasets: [{ ...chartData.value.datasets[0], data: [] }] }
       return
@@ -139,7 +139,7 @@ async function reload() {
       counts.set(key, (counts.get(key) || 0) + 1)
     }
 
-    const labels = programs.map((p) => p.name)
+    const labels = programs.map((p) => p.category)
     const data = programs.map((p) => counts.get(String(p.id)) || 0)
 
     chartData.value = {
