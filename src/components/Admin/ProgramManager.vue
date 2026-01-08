@@ -747,9 +747,11 @@ function downloadSavedCsv() {
     <!-- Train Confirm Dialog -->
     <v-dialog v-model="trainConfirmOpen" max-width="640">
       <v-card>
-        <v-card-title class="text-h6">Confirm Training</v-card-title>
+        <v-card-title class="text-h6">Confirmation</v-card-title>
         <v-card-text class="wrap-content">
-          <div class="mb-2">You are about to train with the following rules:</div>
+          <div class="mb-2">
+            You are about to generate structured rules for decision tree with the following rules:
+          </div>
           <v-list density="compact" v-if="formRules.length">
             <v-list-item v-for="(rl, idx) in formRules" :key="idx">
               <v-list-item-title class="wrap-text">
@@ -764,7 +766,7 @@ function downloadSavedCsv() {
         <v-card-actions>
           <v-spacer />
           <v-btn variant="text" @click="trainConfirmOpen = false">Cancel</v-btn>
-          <v-btn color="primary" :loading="trainRunning" @click="runTrainExtract">Train</v-btn>
+          <v-btn color="primary" :loading="trainRunning" @click="runTrainExtract">Generate</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
